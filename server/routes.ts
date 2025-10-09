@@ -170,7 +170,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/submissions", async (req, res) => {
     try {
       const seasonYear = parseInt(req.query.year as string) || currentYear;
-      const memberCallsign = req.query.callsign as string | undefined;
+      const memberCallsign = req.query.callsign ? (req.query.callsign as string).toUpperCase() : undefined;
       
       const submissions = await storage.getAllSubmissions(seasonYear, memberCallsign);
       
