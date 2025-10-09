@@ -1,0 +1,40 @@
+import { Switch, Route } from "wouter";
+import { queryClient } from "./lib/queryClient";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { Toaster } from "@/components/ui/toaster";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { ThemeProvider } from "@/components/ThemeProvider";
+import HomePage from "@/pages/HomePage";
+import UploadPage from "@/pages/UploadPage";
+import MemberDetailPage from "@/pages/MemberDetailPage";
+import ContestDetailPage from "@/pages/ContestDetailPage";
+import AdminPage from "@/pages/AdminPage";
+import NotFound from "@/pages/not-found";
+
+function Router() {
+  return (
+    <Switch>
+      <Route path="/" component={HomePage} />
+      <Route path="/upload" component={UploadPage} />
+      <Route path="/member/:callsign" component={MemberDetailPage} />
+      <Route path="/contest/:key" component={ContestDetailPage} />
+      <Route path="/admin" component={AdminPage} />
+      <Route component={NotFound} />
+    </Switch>
+  );
+}
+
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider defaultTheme="dark">
+        <TooltipProvider>
+          <Toaster />
+          <Router />
+        </TooltipProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
+  );
+}
+
+export default App;
