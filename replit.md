@@ -8,6 +8,15 @@ Automated scoring system for Yankee Clipper Contest Club ham radio contests. Ing
 **Season**: 2025 (current year is automatically used)
 
 ## Recent Changes
+- **2025-10-09**: Branding and perpetual scoring updates (COMPLETE)
+  - Rebranded from "YCCC Contest Scoring" to "YCCC Awards Program"
+  - Removed subtitle "Automated normalized scoring for Yankee Clipper Contest Club members"
+  - Added tabbed leaderboard: "2025 Season" and "All-Time" views
+  - Implemented getAllTimeLeaderboard() API that aggregates normalized points across ALL years
+  - Backend supports `/api/leaderboard?type=season` and `/api/leaderboard?type=alltime`
+  - Frontend uses React Query with 5-minute staleTime to cache both datasets
+  - Stats cards and hero title dynamically update based on active tab
+  
 - **2025-10-09**: Contest naming simplified (COMPLETE)
   - Removed CONTEST_ALIASES dictionary - no more normalization
   - Uses exact CONTEST field from Cabrillo logs (uppercased)
@@ -131,7 +140,8 @@ This ensures leaderboard queries only count the most recent submission.
 ## API Endpoints
 
 ### Public
-- `GET /api/leaderboard?year=2025` - Season leaderboard (rank, callsign, totalPoints, contests)
+- `GET /api/leaderboard?type=season&year=2025` - Season leaderboard (rank, callsign, totalPoints, contests)
+- `GET /api/leaderboard?type=alltime` - All-time leaderboard aggregated across all years
 - `GET /api/member/:callsign?year=2025` - Member contest history + totals
 - `GET /api/contest/:key/:mode?year=2025` - Contest results + baseline
 - `POST /api/upload` - Submit Cabrillo log (multipart/form-data, field: `file`)
