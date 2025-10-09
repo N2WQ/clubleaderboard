@@ -135,9 +135,9 @@ export class DbStorage implements IStorage {
     let currentRank = 1;
     let previousPoints: number | null = null;
     
-    return result.map((row, index) => {
+    return result.map((row) => {
       if (previousPoints !== null && row.totalPoints < previousPoints) {
-        currentRank = index + 1;
+        currentRank++;
       }
       previousPoints = row.totalPoints;
       
@@ -168,9 +168,9 @@ export class DbStorage implements IStorage {
     let currentRank = 1;
     let previousPoints: number | null = null;
     
-    return result.map((row, index) => {
+    return result.map((row) => {
       if (previousPoints !== null && row.totalPoints < previousPoints) {
-        currentRank = index + 1;
+        currentRank++;
       }
       previousPoints = row.totalPoints;
       
