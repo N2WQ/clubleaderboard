@@ -8,13 +8,17 @@ Automated scoring system for Yankee Clipper Contest Club ham radio contests. Ing
 **Season**: 2025 (current year is automatically used)
 
 ## Recent Changes
-- **2025-10-09**: Automated roster sync with dues validation
+- **2025-10-09**: Automated roster sync with dues validation (COMPLETE)
   - Added firstName, lastName, duesExpiration fields to members table
   - Roster scraper using native https module (fetches from https://yccc.org/roster/)
-  - Dues validation: checks expiration >= 12/31/YYYY for current season
+  - Dues validation: **requires** duesExpiration >= 12/31/YYYY for current season
+  - **Critical fix**: Validation rejects operators with missing or expired dues (no bypass)
+  - **Critical fix**: Roster sync is transactional (only replaces after successful parse)
+  - **Security fix**: Removed debug endpoint, added parse validation before delete
   - API endpoint POST /api/admin/sync-roster (syncs 442+ members automatically)
   - Admin UI: "Sync from Website" button with loading states
-  - Validation rejects submissions if operator dues expired for season year
+  - Database fix: Added unique constraint on baselines (season_year, contest_key, mode)
+  - Validation rejects submissions if any operator has missing/expired dues for season year
   
 - **2025-01-09**: Complete MVP implementation
   - Database schema with PostgreSQL (members, submissions, raw_logs, baselines, operator_points)
@@ -50,10 +54,10 @@ test-data/             # Sample roster.csv and Cabrillo logs for testing
 ```
 
 ### Database Schema
-- **members**: callsign (PK), active_yn, aliases (comma-separated)
+- **members**: callsign (PK), active_yn, aliases (comma-separated), firstName, lastName, duesExpiration
 - **submissions**: season_year, contest_key, mode, callsign, claimed_score, operator_list, member_operators, effective_operators, status, is_active
 - **raw_logs**: submission_id, filename, content (full Cabrillo text)
-- **baselines**: (season_year, contest_key, mode) → highest_single_claimed
+- **baselines**: (season_year, contest_key, mode) → highest_single_claimed [UNIQUE constraint enforced]
 - **operator_points**: submission_id, member_callsign, individual_claimed, normalized_points
 
 ## How It Works
@@ -118,6 +122,7 @@ This ensures leaderboard queries only count the most recent submission.
 
 ### Admin
 - `POST /api/admin/roster` - Upload roster CSV (CALLSIGN, ACTIVE_YN, ALIAS_CALLS)
+- `POST /api/admin/sync-roster` - Sync roster from yccc.org/roster/ (automated, includes dues dates)
 - `POST /api/admin/recompute` - Manual baseline recalculation
 
 ## Testing
