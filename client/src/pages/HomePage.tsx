@@ -132,7 +132,7 @@ export default function HomePage() {
               </div>
               <div className="flex justify-between py-2">
                 <span className="font-medium">Submissions</span>
-                <span className="text-muted-foreground">{leaderboard.reduce((sum: number, m: any) => sum + (m.contests || 0), 0)}</span>
+                <span className="text-muted-foreground">{leaderboard.reduce((sum: number, m: any) => sum + (Number(m.contests) || 0), 0)}</span>
               </div>
             </div>
           </div>

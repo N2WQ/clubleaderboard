@@ -12,6 +12,7 @@ Automated scoring system for Yankee Clipper Contest Club ham radio contests. Ing
   - Fixed ranking to use dense ranking (1,1,1,2) instead of competition ranking (1,1,1,4)
   - Removed large hero text box above stats cards for cleaner layout
   - Tabs now appear directly below stats cards
+  - Fixed Submissions count to properly sum numbers instead of concatenating strings
 
 - **2025-10-09**: Branding and perpetual scoring updates (COMPLETE)
   - Rebranded from "YCCC Contest Scoring" to "YCCC Awards Program"
