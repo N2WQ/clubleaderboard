@@ -42,11 +42,20 @@ export async function validateSubmission(
   const memberOperators: string[] = [];
   const operatorsToCheck = operators.length > 0 ? operators : [callsign];
   const invalidDuesOperators: string[] = [];
+  
+  console.log(`Validating submission for ${callsign}, operators:`, operatorsToCheck, `seasonYear: ${seasonYear}`);
 
   for (const op of operatorsToCheck) {
     const normalizedOp = op.toUpperCase();
     if (memberMap.has(normalizedOp)) {
       const member = memberMap.get(normalizedOp)!;
+      
+      console.log(`Checking operator ${op}:`, {
+        callsign: member.callsign,
+        duesExpiration: member.duesExpiration,
+        isValid: member.duesExpiration ? isDuesValidForYear(member.duesExpiration, seasonYear) : false,
+        seasonYear
+      });
       
       // Require dues expiration data and validate it
       if (!member.duesExpiration || !isDuesValidForYear(member.duesExpiration, seasonYear)) {
@@ -54,6 +63,8 @@ export async function validateSubmission(
       } else if (!memberOperators.includes(member.callsign)) {
         memberOperators.push(member.callsign);
       }
+    } else {
+      console.log(`Operator ${op} not found in member map`);
     }
   }
 
