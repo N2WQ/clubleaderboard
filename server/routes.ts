@@ -167,6 +167,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/submissions", async (req, res) => {
+    try {
+      const seasonYear = parseInt(req.query.year as string) || currentYear;
+      const memberCallsign = req.query.callsign as string | undefined;
+      
+      const submissions = await storage.getAllSubmissions(seasonYear, memberCallsign);
+      
+      res.json({
+        seasonYear,
+        memberCallsign: memberCallsign || null,
+        submissions,
+      });
+    } catch (error) {
+      console.error("Submissions fetch error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   app.post("/api/admin/roster", upload.single("file"), async (req, res) => {
     try {
       if (!req.file) {

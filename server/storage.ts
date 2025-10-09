@@ -32,6 +32,7 @@ export interface IStorage {
   getSeasonLeaderboard(seasonYear: number): Promise<any[]>;
   getMemberContestHistory(callsign: string, seasonYear: number): Promise<any[]>;
   getContestResults(contestKey: string, mode: string, seasonYear: number): Promise<any[]>;
+  getAllSubmissions(seasonYear: number, memberCallsign?: string): Promise<any[]>;
 
   createRawLog(log: InsertRawLog): Promise<RawLog>;
 
@@ -192,6 +193,35 @@ export class DbStorage implements IStorage {
         )
       )
       .orderBy(desc(schema.submissions.claimedScore));
+  }
+
+  async getAllSubmissions(seasonYear: number, memberCallsign?: string): Promise<any[]> {
+    const conditions = [
+      eq(schema.submissions.seasonYear, seasonYear),
+      eq(schema.submissions.isActive, true),
+      eq(schema.submissions.status, "accepted")
+    ];
+
+    if (memberCallsign) {
+      conditions.push(eq(schema.operatorPoints.memberCallsign, memberCallsign));
+    }
+
+    return db
+      .select({
+        id: schema.submissions.id,
+        contestKey: schema.submissions.contestKey,
+        mode: schema.submissions.mode,
+        callsign: schema.submissions.callsign,
+        memberCallsign: schema.operatorPoints.memberCallsign,
+        claimedScore: schema.submissions.claimedScore,
+        individualClaimed: schema.operatorPoints.individualClaimed,
+        normalizedPoints: schema.operatorPoints.normalizedPoints,
+        submittedAt: schema.submissions.submittedAt,
+      })
+      .from(schema.submissions)
+      .innerJoin(schema.operatorPoints, eq(schema.submissions.id, schema.operatorPoints.submissionId))
+      .where(and(...conditions))
+      .orderBy(desc(schema.submissions.submittedAt));
   }
 
   async createRawLog(log: InsertRawLog): Promise<RawLog> {

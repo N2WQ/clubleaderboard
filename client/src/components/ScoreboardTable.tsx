@@ -6,6 +6,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Link } from "wouter";
 
 interface ScoreboardEntry {
   rank: number;
@@ -43,12 +44,22 @@ export function ScoreboardTable({ entries }: ScoreboardTableProps) {
               <TableCell className="font-mono font-semibold" data-testid={`text-callsign-${entry.callsign}`}>
                 {entry.callsign}
               </TableCell>
-              <TableCell className="text-right font-mono">{entry.contests}</TableCell>
+              <TableCell className="text-right font-mono">
+                <Link href={`/submissions?callsign=${entry.callsign}`}>
+                  <button className="hover:text-primary hover:underline" data-testid={`link-contests-${entry.callsign}`}>
+                    {entry.contests}
+                  </button>
+                </Link>
+              </TableCell>
               <TableCell className="text-right font-mono">
                 {entry.claimedScore.toLocaleString()}
               </TableCell>
               <TableCell className="text-right font-mono font-semibold text-primary">
-                {entry.normalizedPoints.toLocaleString()}
+                <Link href={`/submissions?callsign=${entry.callsign}`}>
+                  <button className="hover:underline" data-testid={`link-points-${entry.callsign}`}>
+                    {entry.normalizedPoints.toLocaleString()}
+                  </button>
+                </Link>
               </TableCell>
             </TableRow>
           ))}
