@@ -7,6 +7,9 @@ export const members = pgTable("members", {
   callsign: text("callsign").primaryKey(),
   activeYn: boolean("active_yn").notNull().default(true),
   aliases: text("aliases").default(""),
+  firstName: text("first_name"),
+  lastName: text("last_name"),
+  duesExpiration: text("dues_expiration"),
 });
 
 export const rawLogs = pgTable("raw_logs", {
@@ -54,20 +57,36 @@ export const operatorPoints = pgTable("operator_points", {
 });
 
 export const insertMemberSchema = createInsertSchema(members);
-export const insertSubmissionSchema = createInsertSchema(submissions, {
-  submittedAt: z.coerce.date().optional(),
-  isActive: z.boolean().optional(),
-}).omit({ 
-  id: true,
+export const insertSubmissionSchema = z.object({
+  seasonYear: z.number(),
+  contestKey: z.string(),
+  mode: z.string(),
+  callsign: z.string(),
+  categoryOperator: z.string().optional(),
+  claimedScore: z.number(),
+  operatorList: z.string().optional(),
+  memberOperators: z.string().optional(),
+  effectiveOperators: z.number(),
+  club: z.string().optional(),
+  status: z.string(),
+  rejectReason: z.string().optional(),
 });
-export const insertRawLogSchema = createInsertSchema(rawLogs, {
-  receivedAt: z.coerce.date().optional(),
-}).omit({ 
-  id: true,
+export const insertRawLogSchema = z.object({
+  submissionId: z.number().optional(),
+  filename: z.string(),
+  content: z.string(),
 });
-export const insertBaselineSchema = createInsertSchema(baselines);
-export const insertOperatorPointsSchema = createInsertSchema(operatorPoints).omit({ 
-  id: true,
+export const insertBaselineSchema = z.object({
+  seasonYear: z.number(),
+  contestKey: z.string(),
+  mode: z.string(),
+  highestSingleClaimed: z.number().optional(),
+});
+export const insertOperatorPointsSchema = z.object({
+  submissionId: z.number(),
+  memberCallsign: z.string(),
+  individualClaimed: z.number(),
+  normalizedPoints: z.number(),
 });
 
 export type Member = typeof members.$inferSelect;

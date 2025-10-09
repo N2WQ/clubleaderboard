@@ -5,6 +5,7 @@ import Papa from "papaparse";
 import { storage } from "./storage";
 import { parseCabrillo } from "./cabrillo-parser";
 import { validateSubmission, computeNormalizedPoints, recomputeBaseline } from "./scoring-engine";
+import { fetchYCCCRoster } from "./roster-scraper";
 
 const upload = multer({ 
   storage: multer.memoryStorage(),
@@ -35,7 +36,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         data.callsign,
         data.operators,
         data.club,
-        data.categoryOperator
+        data.categoryOperator,
+        currentYear
       );
 
       if (!validation.valid) {
@@ -74,7 +76,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         effectiveOperators: validation.effectiveOperators || 1,
         club: data.club,
         status: "accepted",
-        rejectReason: null,
+        rejectReason: undefined,
       });
 
       await storage.createRawLog({
@@ -192,6 +194,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Roster upload error:", error);
       res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.post("/api/admin/sync-roster", async (req, res) => {
+    try {
+      const rosterMembers = await fetchYCCCRoster();
+      
+      if (rosterMembers.length === 0) {
+        return res.status(500).json({ 
+          error: "Failed to parse roster - no members found" 
+        });
+      }
+      
+      const members = rosterMembers.map(m => ({
+        callsign: m.callsign.toUpperCase(),
+        activeYn: true,
+        aliases: '',
+        firstName: m.firstName,
+        lastName: m.lastName,
+        duesExpiration: m.duesExpiration,
+      }));
+
+      // Only delete and replace if we successfully parsed members
+      await storage.deleteAllMembers();
+      await storage.createManyMembers(members);
+
+      res.json({ 
+        success: true,
+        count: members.length,
+        message: `Synced ${members.length} members from yccc.org roster`,
+        sample: members.slice(0, 3)
+      });
+    } catch (error) {
+      console.error("Roster sync error:", error);
+      res.status(500).json({ error: "Failed to sync roster from yccc.org" });
     }
   });
 

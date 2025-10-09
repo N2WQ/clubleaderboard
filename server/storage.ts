@@ -64,6 +64,9 @@ export class DbStorage implements IStorage {
         set: {
           activeYn: sql`EXCLUDED.active_yn`,
           aliases: sql`EXCLUDED.aliases`,
+          firstName: sql`EXCLUDED.first_name`,
+          lastName: sql`EXCLUDED.last_name`,
+          duesExpiration: sql`EXCLUDED.dues_expiration`,
         },
       });
     }

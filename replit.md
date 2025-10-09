@@ -8,6 +8,14 @@ Automated scoring system for Yankee Clipper Contest Club ham radio contests. Ing
 **Season**: 2025 (current year is automatically used)
 
 ## Recent Changes
+- **2025-10-09**: Automated roster sync with dues validation
+  - Added firstName, lastName, duesExpiration fields to members table
+  - Roster scraper using native https module (fetches from https://yccc.org/roster/)
+  - Dues validation: checks expiration >= 12/31/YYYY for current season
+  - API endpoint POST /api/admin/sync-roster (syncs 442+ members automatically)
+  - Admin UI: "Sync from Website" button with loading states
+  - Validation rejects submissions if operator dues expired for season year
+  
 - **2025-01-09**: Complete MVP implementation
   - Database schema with PostgreSQL (members, submissions, raw_logs, baselines, operator_points)
   - Cabrillo parser with contest alias mapping (CQWW, ARRLDX, CQWPX, IARU, SWEEPSTAKES, etc.)

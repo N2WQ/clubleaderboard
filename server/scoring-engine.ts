@@ -1,5 +1,6 @@
 import { storage } from "./storage";
 import type { Submission, Member } from "@shared/schema";
+import { isDuesValidForYear } from "./roster-scraper";
 
 export interface ValidationResult {
   valid: boolean;
@@ -12,7 +13,8 @@ export async function validateSubmission(
   callsign: string,
   operators: string[],
   club: string,
-  categoryOperator: string
+  categoryOperator: string,
+  seasonYear: number
 ): Promise<ValidationResult> {
   const normalizedClub = club.trim().toUpperCase();
   const expectedClub = "YANKEE CLIPPER CONTEST CLUB";
@@ -39,15 +41,27 @@ export async function validateSubmission(
 
   const memberOperators: string[] = [];
   const operatorsToCheck = operators.length > 0 ? operators : [callsign];
+  const invalidDuesOperators: string[] = [];
 
   for (const op of operatorsToCheck) {
     const normalizedOp = op.toUpperCase();
     if (memberMap.has(normalizedOp)) {
       const member = memberMap.get(normalizedOp)!;
-      if (!memberOperators.includes(member.callsign)) {
+      
+      // Require dues expiration data and validate it
+      if (!member.duesExpiration || !isDuesValidForYear(member.duesExpiration, seasonYear)) {
+        invalidDuesOperators.push(member.callsign);
+      } else if (!memberOperators.includes(member.callsign)) {
         memberOperators.push(member.callsign);
       }
     }
+  }
+
+  if (invalidDuesOperators.length > 0) {
+    return {
+      valid: false,
+      error: `The following operators have expired dues for ${seasonYear}: ${invalidDuesOperators.join(', ')}. Dues must be valid through 12/31/${seasonYear}.`,
+    };
   }
 
   const isMultiOp = categoryOperator.includes('MULTI') || 
@@ -57,7 +71,7 @@ export async function validateSubmission(
   if (isMultiOp && memberOperators.length < 2) {
     return {
       valid: false,
-      error: `Multi-op submission must have at least 2 YCCC member operators (found ${memberOperators.length})`,
+      error: `Multi-op submission must have at least 2 YCCC member operators with valid dues (found ${memberOperators.length})`,
     };
   }
 

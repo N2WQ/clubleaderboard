@@ -56,6 +56,34 @@ export default function AdminPage() {
     },
   });
 
+  const syncRosterMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/admin/sync-roster", {
+        method: "POST",
+      });
+      
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Sync failed");
+      }
+      
+      return res.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Roster Synced",
+        description: data.message || `Successfully synced ${data.count} members from yccc.org`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        variant: "destructive",
+        title: "Sync Failed",
+        description: error.message,
+      });
+    },
+  });
+
   const handleRosterUpload = () => {
     if (rosterFile) {
       uploadRosterMutation.mutate(rosterFile);
@@ -146,7 +174,22 @@ export default function AdminPage() {
 
           <TabsContent value="roster" className="space-y-6">
             <Card className="p-6">
-              <h3 className="text-xl font-semibold mb-4">Upload Member Roster</h3>
+              <h3 className="text-xl font-semibold mb-4">Sync from YCCC Website</h3>
+              <p className="text-sm text-muted-foreground mb-6">
+                Automatically fetch the latest member roster from yccc.org/roster/ including dues expiration dates
+              </p>
+
+              <Button
+                onClick={() => syncRosterMutation.mutate()}
+                disabled={syncRosterMutation.isPending}
+                data-testid="button-sync-roster"
+              >
+                {syncRosterMutation.isPending ? "Syncing..." : "Sync from Website"}
+              </Button>
+            </Card>
+
+            <Card className="p-6">
+              <h3 className="text-xl font-semibold mb-4">Manual Upload (Legacy)</h3>
               <p className="text-sm text-muted-foreground mb-6">
                 Upload a CSV file with columns: CALLSIGN, ACTIVE_YN, ALIAS_CALLS
               </p>
