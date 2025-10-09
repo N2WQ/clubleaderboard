@@ -3,26 +3,25 @@ import { StatCard } from "@/components/StatCard";
 import { Trophy, Users, Radio, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
-
-// TODO: remove mock data
-const mockStats = {
-  totalMembers: 247,
-  activeContests: 12,
-  topScore: 1000000,
-};
-
-const mockLeaderboard = [
-  { rank: 1, callsign: "K1AR", claimedScore: 5420000, normalizedPoints: 1000000, contests: 8 },
-  { rank: 2, callsign: "W1WEF", claimedScore: 4980000, normalizedPoints: 918821, contests: 7 },
-  { rank: 3, callsign: "K1TTT", claimedScore: 4650000, normalizedPoints: 857895, contests: 6 },
-  { rank: 4, callsign: "N1UR", claimedScore: 3890000, normalizedPoints: 717647, contests: 5 },
-  { rank: 5, callsign: "W1XX", claimedScore: 3420000, normalizedPoints: 630952, contests: 6 },
-  { rank: 6, callsign: "K1DG", claimedScore: 3120000, normalizedPoints: 575737, contests: 5 },
-  { rank: 7, callsign: "W1TO", claimedScore: 2980000, normalizedPoints: 549815, contests: 4 },
-  { rank: 8, callsign: "N1API", claimedScore: 2750000, normalizedPoints: 507353, contests: 5 },
-];
+import { useQuery } from "@tanstack/react-query";
 
 export default function HomePage() {
+  const currentYear = new Date().getFullYear();
+
+  const { data: leaderboard = [], isLoading } = useQuery({
+    queryKey: ["/api/leaderboard"],
+    queryFn: async () => {
+      const res = await fetch(`/api/leaderboard?year=${currentYear}`);
+      if (!res.ok) throw new Error("Failed to fetch leaderboard");
+      return res.json();
+    },
+  });
+
+  const stats = {
+    totalMembers: leaderboard.length || 0,
+    activeContests: leaderboard[0]?.contests || 0,
+    topScore: leaderboard[0]?.normalizedPoints || 0,
+  };
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border sticky top-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50">
@@ -54,19 +53,19 @@ export default function HomePage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-12">
             <StatCard
               title="Active Members"
-              value={mockStats.totalMembers}
+              value={stats.totalMembers}
               icon={Users}
               description="Participants this season"
             />
             <StatCard
               title="Contests Tracked"
-              value={mockStats.activeContests}
+              value={stats.activeContests}
               icon={Radio}
               description="Completed contests"
             />
             <StatCard
               title="Top Normalized Score"
-              value={mockStats.topScore.toLocaleString()}
+              value={stats.topScore.toLocaleString()}
               icon={Trophy}
               description="Current season maximum"
             />
@@ -77,27 +76,33 @@ export default function HomePage() {
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-2xl font-semibold">Season Leaderboard</h3>
             <p className="text-sm text-muted-foreground">
-              Showing top 50 members by normalized points
+              {isLoading ? "Loading..." : `Showing ${leaderboard.length} members by normalized points`}
             </p>
           </div>
-          <ScoreboardTable entries={mockLeaderboard} />
+          {isLoading ? (
+            <div className="text-center py-12 text-muted-foreground">Loading leaderboard...</div>
+          ) : leaderboard.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground">No submissions yet. Be the first to submit a log!</div>
+          ) : (
+            <ScoreboardTable entries={leaderboard} />
+          )}
         </div>
 
         <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="p-6 rounded-lg border border-border">
-            <h4 className="font-semibold mb-2">Recent Contests</h4>
+            <h4 className="font-semibold mb-2">Season Information</h4>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between py-2 border-b border-border">
-                <span className="font-mono">CQWW CW</span>
-                <span className="text-muted-foreground">45 submissions</span>
+                <span className="font-medium">Current Year</span>
+                <span className="text-muted-foreground">{currentYear}</span>
               </div>
               <div className="flex justify-between py-2 border-b border-border">
-                <span className="font-mono">ARRLDX SSB</span>
-                <span className="text-muted-foreground">38 submissions</span>
+                <span className="font-medium">Total Participants</span>
+                <span className="text-muted-foreground">{stats.totalMembers}</span>
               </div>
               <div className="flex justify-between py-2">
-                <span className="font-mono">CQWPX RTTY</span>
-                <span className="text-muted-foreground">32 submissions</span>
+                <span className="font-medium">Submissions</span>
+                <span className="text-muted-foreground">{leaderboard.reduce((sum, m) => sum + (m.contests || 0), 0)}</span>
               </div>
             </div>
           </div>

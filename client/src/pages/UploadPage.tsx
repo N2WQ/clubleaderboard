@@ -1,16 +1,45 @@
 import { FileUploadZone } from "@/components/FileUploadZone";
-import { Radio, ArrowLeft, CheckCircle2 } from "lucide-react";
+import { Radio, ArrowLeft, CheckCircle2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function UploadPage() {
-  const [submitted, setSubmitted] = useState(false);
+  const [result, setResult] = useState<any>(null);
+  const queryClient = useQueryClient();
+
+  const uploadMutation = useMutation({
+    mutationFn: async ({ file, email }: { file: File; email: string }) => {
+      const formData = new FormData();
+      formData.append("file", file);
+      if (email) formData.append("email", email);
+      
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+      
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Upload failed");
+      }
+      
+      return res.json();
+    },
+    onSuccess: (data) => {
+      setResult(data);
+      queryClient.invalidateQueries({ queryKey: ["/api/leaderboard"] });
+    },
+    onError: (error: Error) => {
+      setResult({ status: "error", error: error.message });
+    },
+  });
 
   const handleFileSelect = (file: File, email: string) => {
-    console.log("File submitted:", file.name, "Email:", email);
-    setSubmitted(true);
+    uploadMutation.mutate({ file, email });
   };
 
   return (
@@ -38,15 +67,31 @@ export default function UploadPage() {
           </p>
         </div>
 
-        {submitted ? (
+        {result?.status === "accepted" && (
           <Alert className="mb-8 border-green-500/20 bg-green-500/10">
             <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
-            <AlertTitle>Submission Received!</AlertTitle>
+            <AlertTitle>Submission Accepted!</AlertTitle>
             <AlertDescription>
-              Your log is being processed. You'll receive an email confirmation with your results shortly.
+              <p className="mb-2">
+                Contest: {result.contest} {result.mode} • Callsign: {result.callsign}
+              </p>
+              <p className="mb-2">
+                Claimed Score: {result.claimedScore.toLocaleString()} • Normalized Points: {result.normalizedPoints.toLocaleString()}
+              </p>
+              <p className="text-sm">
+                Operators: {result.memberOperators.join(", ")}
+              </p>
             </AlertDescription>
           </Alert>
-        ) : null}
+        )}
+
+        {result?.status === "error" && (
+          <Alert className="mb-8 border-red-500/20 bg-red-500/10">
+            <XCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+            <AlertTitle>Submission Rejected</AlertTitle>
+            <AlertDescription>{result.error}</AlertDescription>
+          </Alert>
+        )}
 
         <div className="bg-card border border-card-border rounded-lg p-8 mb-8">
           <FileUploadZone onFileSelect={handleFileSelect} />

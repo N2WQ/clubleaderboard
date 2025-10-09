@@ -5,28 +5,68 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ContestResultsTable } from "@/components/ContestResultsTable";
 import { StatCard } from "@/components/StatCard";
-
-// TODO: remove mock data
-const mockStats = {
-  totalSubmissions: 156,
-  accepted: 142,
-  rejected: 8,
-  processing: 6,
-};
-
-const mockSubmissions = [
-  { callsign: "K1AR", claimedScore: 5420000, individualClaimed: 5420000, normalizedPoints: 1000000, effectiveOperators: 1, status: "accepted" as const },
-  { callsign: "W1WEF", claimedScore: 4980000, individualClaimed: 4980000, normalizedPoints: 918821, effectiveOperators: 1, status: "accepted" as const },
-  { callsign: "K1TTT", claimedScore: 3200000, individualClaimed: 1600000, normalizedPoints: 295203, effectiveOperators: 2, status: "processing" as const },
-];
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
 
 export default function AdminPage() {
   const [rosterFile, setRosterFile] = useState<File | null>(null);
+  const { toast } = useToast();
+  const currentYear = new Date().getFullYear();
+
+  const { data: leaderboard = [] } = useQuery({
+    queryKey: ["/api/leaderboard"],
+    queryFn: async () => {
+      const res = await fetch(`/api/leaderboard?year=${currentYear}`);
+      if (!res.ok) throw new Error("Failed to fetch leaderboard");
+      return res.json();
+    },
+  });
+
+  const uploadRosterMutation = useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData();
+      formData.append("file", file);
+      
+      const res = await fetch("/api/admin/roster", {
+        method: "POST",
+        body: formData,
+      });
+      
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Upload failed");
+      }
+      
+      return res.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Roster Uploaded",
+        description: `Successfully uploaded ${data.count} members`,
+      });
+      setRosterFile(null);
+    },
+    onError: (error: Error) => {
+      toast({
+        variant: "destructive",
+        title: "Upload Failed",
+        description: error.message,
+      });
+    },
+  });
 
   const handleRosterUpload = () => {
-    console.log("Uploading roster:", rosterFile?.name);
+    if (rosterFile) {
+      uploadRosterMutation.mutate(rosterFile);
+    }
+  };
+
+  const stats = {
+    totalSubmissions: leaderboard.reduce((sum: number, m: any) => sum + (m.contests || 0), 0),
+    accepted: leaderboard.length,
+    rejected: 0,
+    processing: 0,
   };
 
   return (
@@ -49,22 +89,22 @@ export default function AdminPage() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <StatCard
               title="Total Submissions"
-              value={mockStats.totalSubmissions}
+              value={stats.totalSubmissions}
               icon={FileText}
             />
             <StatCard
               title="Accepted"
-              value={mockStats.accepted}
+              value={stats.accepted}
               icon={Users}
             />
             <StatCard
               title="Rejected"
-              value={mockStats.rejected}
+              value={stats.rejected}
               icon={FileText}
             />
             <StatCard
               title="Processing"
-              value={mockStats.processing}
+              value={stats.processing}
               icon={Settings}
             />
           </div>
@@ -85,13 +125,23 @@ export default function AdminPage() {
 
           <TabsContent value="submissions" className="space-y-6">
             <div className="flex items-center justify-between">
-              <h3 className="text-2xl font-semibold">Recent Submissions</h3>
-              <Button variant="outline" data-testid="button-export">
-                <Upload className="h-4 w-4 mr-2" />
-                Export CSV
-              </Button>
+              <h3 className="text-2xl font-semibold">Season Statistics</h3>
             </div>
-            <ContestResultsTable results={mockSubmissions} />
+            <div className="p-6 rounded-lg border border-border">
+              <p className="text-muted-foreground mb-4">
+                View detailed submissions in the contest detail pages from the main scoreboard
+              </p>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">Total Members</p>
+                  <p className="text-2xl font-semibold">{stats.accepted}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Total Submissions</p>
+                  <p className="text-2xl font-semibold">{stats.totalSubmissions}</p>
+                </div>
+              </div>
+            </div>
           </TabsContent>
 
           <TabsContent value="roster" className="space-y-6">
@@ -124,10 +174,10 @@ export default function AdminPage() {
 
                 <Button
                   onClick={handleRosterUpload}
-                  disabled={!rosterFile}
+                  disabled={!rosterFile || uploadRosterMutation.isPending}
                   data-testid="button-upload-roster"
                 >
-                  Upload Roster
+                  {uploadRosterMutation.isPending ? "Uploading..." : "Upload Roster"}
                 </Button>
               </div>
             </Card>

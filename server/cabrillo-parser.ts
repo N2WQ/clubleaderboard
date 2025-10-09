@@ -1,0 +1,185 @@
+export interface CabrilloData {
+  contest: string;
+  callsign: string;
+  claimedScore: number;
+  categoryOperator: string;
+  categoryAssisted: string;
+  categoryTransmitter: string;
+  categoryBand: string;
+  categoryMode: string;
+  mode: string;
+  operators: string[];
+  club: string;
+}
+
+export interface ParsedCabrillo {
+  success: boolean;
+  data?: CabrilloData;
+  error?: string;
+}
+
+const CONTEST_ALIASES: Record<string, string> = {
+  'CQ-WW-CW': 'CQWW',
+  'CQ-WW-SSB': 'CQWW',
+  'CQ-WW-RTTY': 'CQWW',
+  'CQWW-CW': 'CQWW',
+  'CQWW-SSB': 'CQWW',
+  'CQWW-RTTY': 'CQWW',
+  'CQ-WPX-CW': 'CQWPX',
+  'CQ-WPX-SSB': 'CQWPX',
+  'CQ-WPX-RTTY': 'CQWPX',
+  'CQWPX-CW': 'CQWPX',
+  'CQWPX-SSB': 'CQWPX',
+  'CQWPX-RTTY': 'CQWPX',
+  'ARRL-DX-CW': 'ARRLDX',
+  'ARRL-DX-SSB': 'ARRLDX',
+  'ARRLDX-CW': 'ARRLDX',
+  'ARRLDX-SSB': 'ARRLDX',
+  'IARU-HF': 'IARU',
+  'ARRL-SS-CW': 'SWEEPSTAKES',
+  'ARRL-SS-SSB': 'SWEEPSTAKES',
+  'ARRL-10M': 'ARRL10M',
+  'ARRL-160M': 'ARRL160M',
+  'NAQP-CW': 'NAQP',
+  'NAQP-SSB': 'NAQP',
+  'NAQP-RTTY': 'NAQP',
+};
+
+function normalizeContestKey(contest: string): string {
+  const normalized = contest.toUpperCase().trim();
+  return CONTEST_ALIASES[normalized] || normalized;
+}
+
+function extractMode(categoryMode: string | undefined, contestName: string): string {
+  if (categoryMode) {
+    const mode = categoryMode.toUpperCase().trim();
+    if (mode.includes('CW')) return 'CW';
+    if (mode.includes('SSB') || mode.includes('PHONE')) return 'SSB';
+    if (mode.includes('RTTY') || mode.includes('DIGITAL')) return 'RTTY';
+    if (mode.includes('MIXED')) return 'MIXED';
+    return mode;
+  }
+  
+  const contestUpper = contestName.toUpperCase();
+  if (contestUpper.includes('CW')) return 'CW';
+  if (contestUpper.includes('SSB') || contestUpper.includes('PHONE')) return 'SSB';
+  if (contestUpper.includes('RTTY')) return 'RTTY';
+  
+  return 'MIXED';
+}
+
+function parseOperators(operatorLine: string): string[] {
+  return operatorLine
+    .split(/[,\s]+/)
+    .map(op => op.trim().toUpperCase())
+    .filter(op => op.length > 0 && op.match(/^[A-Z0-9]+$/));
+}
+
+function computeScore(lines: string[]): number {
+  let score = 0;
+  for (const line of lines) {
+    if (line.startsWith('QSO:')) {
+      score++;
+    }
+  }
+  return score * 2;
+}
+
+export function parseCabrillo(content: string): ParsedCabrillo {
+  const lines = content.split('\n').map(line => line.trim());
+  
+  const data: Partial<CabrilloData> = {
+    contest: '',
+    callsign: '',
+    claimedScore: 0,
+    categoryOperator: '',
+    categoryAssisted: '',
+    categoryTransmitter: '',
+    categoryBand: '',
+    categoryMode: '',
+    mode: '',
+    operators: [],
+    club: '',
+  };
+
+  for (const line of lines) {
+    if (!line || line.startsWith('#')) continue;
+
+    const [key, ...valueParts] = line.split(/:\s*/);
+    const value = valueParts.join(':').trim();
+
+    switch (key.toUpperCase()) {
+      case 'CONTEST':
+        data.contest = value;
+        break;
+      case 'CALLSIGN':
+        data.callsign = value.toUpperCase();
+        break;
+      case 'CLAIMED-SCORE':
+        data.claimedScore = parseInt(value, 10) || 0;
+        break;
+      case 'CATEGORY-OPERATOR':
+        data.categoryOperator = value.toUpperCase();
+        break;
+      case 'CATEGORY-ASSISTED':
+        data.categoryAssisted = value.toUpperCase();
+        break;
+      case 'CATEGORY-TRANSMITTER':
+        data.categoryTransmitter = value.toUpperCase();
+        break;
+      case 'CATEGORY-BAND':
+        data.categoryBand = value.toUpperCase();
+        break;
+      case 'CATEGORY-MODE':
+        data.categoryMode = value.toUpperCase();
+        break;
+      case 'MODE':
+        data.mode = value.toUpperCase();
+        break;
+      case 'OPERATORS':
+        data.operators = parseOperators(value);
+        break;
+      case 'CLUB':
+        data.club = value;
+        break;
+    }
+  }
+
+  if (!data.contest) {
+    return {
+      success: false,
+      error: 'Missing CONTEST field in Cabrillo file',
+    };
+  }
+
+  if (!data.callsign) {
+    return {
+      success: false,
+      error: 'Missing CALLSIGN field in Cabrillo file',
+    };
+  }
+
+  if (data.claimedScore === 0) {
+    data.claimedScore = computeScore(lines);
+  }
+
+  const normalizedContest = normalizeContestKey(data.contest);
+  const extractedMode = extractMode(data.categoryMode || data.mode, data.contest);
+
+  return {
+    success: true,
+    data: {
+      contest: normalizedContest,
+      callsign: data.callsign!,
+      claimedScore: data.claimedScore!,
+      categoryOperator: data.categoryOperator || 'SINGLE-OP',
+      categoryAssisted: data.categoryAssisted || '',
+      categoryTransmitter: data.categoryTransmitter || '',
+      categoryBand: data.categoryBand || '',
+      categoryMode: data.categoryMode || '',
+      mode: extractedMode,
+      operators: data.operators || [data.callsign!],
+      club: data.club || '',
+    },
+  };
+}
