@@ -13,7 +13,6 @@ export default function UploadPage() {
 
   const uploadMutation = useMutation({
     mutationFn: async ({ file, email }: { file: File; email: string }) => {
-      console.log('[Upload] Starting upload for file:', file.name);
       const formData = new FormData();
       formData.append("file", file);
       if (email) formData.append("email", email);
@@ -23,17 +22,12 @@ export default function UploadPage() {
         body: formData,
       });
       
-      console.log('[Upload] Response status:', res.status);
-      
       if (!res.ok) {
         const error = await res.json();
-        console.log('[Upload] Error response:', error);
         throw new Error(error.error || "Upload failed");
       }
       
-      const data = await res.json();
-      console.log('[Upload] Success response:', data);
-      return data;
+      return res.json();
     },
     onSuccess: (data) => {
       setResult(data);

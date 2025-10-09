@@ -136,22 +136,29 @@ export async function recomputeBaseline(
   mode: string
 ): Promise<void> {
   const submissions = await storage.getActiveSubmissionsByContest(seasonYear, contestKey, mode);
-  const singleOpSubmissions = submissions.filter(s => s.effectiveOperators === 1 && s.status === 'accepted');
+  const acceptedSubmissions = submissions.filter(s => s.status === 'accepted');
   
-  if (singleOpSubmissions.length === 0) {
+  if (acceptedSubmissions.length === 0) {
     return;
   }
 
-  const maxScore = Math.max(...singleOpSubmissions.map(s => s.claimedScore));
+  const singleOpSubmissions = acceptedSubmissions.filter(s => s.effectiveOperators === 1);
   
-  await storage.upsertBaseline({
-    seasonYear,
-    contestKey,
-    mode,
-    highestSingleClaimed: maxScore,
-  });
+  let maxScore: number;
+  if (singleOpSubmissions.length > 0) {
+    maxScore = Math.max(...singleOpSubmissions.map(s => s.claimedScore));
+    await storage.upsertBaseline({
+      seasonYear,
+      contestKey,
+      mode,
+      highestSingleClaimed: maxScore,
+    });
+  } else {
+    // No single-op baseline yet, use max individual claimed as provisional baseline
+    maxScore = Math.max(...acceptedSubmissions.map(s => s.claimedScore / s.effectiveOperators));
+  }
 
-  for (const sub of submissions.filter(s => s.status === 'accepted')) {
+  for (const sub of acceptedSubmissions) {
     await storage.deleteOperatorPointsBySubmission(sub.id);
     
     const memberOps = sub.memberOperators?.split(',') || [];

@@ -52,7 +52,7 @@ export const operatorPoints = pgTable("operator_points", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   submissionId: integer("submission_id").notNull(),
   memberCallsign: text("member_callsign").notNull(),
-  individualClaimed: integer("individual_claimed").notNull(),
+  individualClaimed: real("individual_claimed").notNull(),
   normalizedPoints: real("normalized_points").notNull(),
 });
 
