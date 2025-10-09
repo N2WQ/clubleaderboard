@@ -35,7 +35,7 @@ export default function AllSubmissionsPage() {
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Radio className="h-6 w-6 text-primary" />
-            <h1 className="text-xl font-semibold">YCCC Contest Scoring</h1>
+            <h1 className="text-xl font-semibold">YCCC Awards Program</h1>
           </div>
           <Button variant="ghost" onClick={() => window.history.back()} data-testid="button-back">
             <ArrowLeft className="h-4 w-4 mr-2" />

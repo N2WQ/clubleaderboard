@@ -28,7 +28,7 @@ export default function HomePage() {
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Radio className="h-6 w-6 text-primary" />
-            <h1 className="text-xl font-semibold">YCCC Contest Scoring</h1>
+            <h1 className="text-xl font-semibold">YCCC Awards Program</h1>
           </div>
           <div className="flex items-center gap-2">
             <Link href="/upload">
@@ -44,10 +44,7 @@ export default function HomePage() {
       <main className="container mx-auto px-4 py-12">
         <div className="mb-12">
           <div className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-lg p-8 md:p-12 mb-8">
-            <h2 className="text-4xl font-bold mb-3">2025 Season Leaderboard</h2>
-            <p className="text-lg text-muted-foreground">
-              Automated normalized scoring for Yankee Clipper Contest Club members
-            </p>
+            <h2 className="text-4xl font-bold">2025 Season Leaderboard</h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-12">
