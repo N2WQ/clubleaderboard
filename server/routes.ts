@@ -103,6 +103,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         claimedScore: data.claimedScore,
         normalizedPoints,
         memberOperators: memberOps,
+        excludedOperators: validation.excludedOperators,
+        warning: validation.excludedReason,
       });
     } catch (error) {
       console.error("Upload error:", error);

@@ -7,6 +7,8 @@ export interface ValidationResult {
   error?: string;
   memberOperators?: string[];
   effectiveOperators?: number;
+  excludedOperators?: string[];
+  excludedReason?: string;
 }
 
 export async function validateSubmission(
@@ -41,26 +43,33 @@ export async function validateSubmission(
 
   const memberOperators: string[] = [];
   const operatorsToCheck = operators.length > 0 ? operators : [callsign];
-  const invalidDuesOperators: string[] = [];
+  const expiredDuesOperators: string[] = [];
 
   for (const op of operatorsToCheck) {
     const normalizedOp = op.toUpperCase();
     if (memberMap.has(normalizedOp)) {
       const member = memberMap.get(normalizedOp)!;
       
-      // Require dues expiration data and validate it
+      // Separate operators by dues status
       if (!member.duesExpiration || !isDuesValidForYear(member.duesExpiration, seasonYear)) {
-        invalidDuesOperators.push(member.callsign);
+        expiredDuesOperators.push(member.callsign);
       } else if (!memberOperators.includes(member.callsign)) {
         memberOperators.push(member.callsign);
       }
     }
   }
 
-  if (invalidDuesOperators.length > 0) {
+  // Only reject if NO operators have valid dues
+  if (memberOperators.length === 0) {
+    if (expiredDuesOperators.length > 0) {
+      return {
+        valid: false,
+        error: `All operators have expired dues for ${seasonYear}: ${expiredDuesOperators.join(', ')}. At least one operator must have current dues through 12/31/${seasonYear}.`,
+      };
+    }
     return {
       valid: false,
-      error: `The following operators have expired dues for ${seasonYear}: ${invalidDuesOperators.join(', ')}. Dues must be valid through 12/31/${seasonYear}.`,
+      error: `No YCCC member operators found in submission.`,
     };
   }
 
@@ -68,12 +77,8 @@ export async function validateSubmission(
                     categoryOperator.includes('M/') ||
                     categoryOperator === 'CHECKLOG';
 
-  if (isMultiOp && memberOperators.length < 2) {
-    return {
-      valid: false,
-      error: `Multi-op submission must have at least 2 YCCC member operators with valid dues (found ${memberOperators.length})`,
-    };
-  }
+  // Multi-op: Just inform about excluded operators, don't reject
+  // Points will be split among valid operators only
 
   const effectiveOperators = isMultiOp ? memberOperators.length : 1;
 
@@ -81,6 +86,10 @@ export async function validateSubmission(
     valid: true,
     memberOperators,
     effectiveOperators,
+    excludedOperators: expiredDuesOperators.length > 0 ? expiredDuesOperators : undefined,
+    excludedReason: expiredDuesOperators.length > 0 
+      ? `The following operators were excluded due to expired dues for ${seasonYear}: ${expiredDuesOperators.join(', ')}. They must have current dues through 12/31/${seasonYear}.`
+      : undefined,
   };
 }
 

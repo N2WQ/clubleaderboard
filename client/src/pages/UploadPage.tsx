@@ -1,5 +1,5 @@
 import { FileUploadZone } from "@/components/FileUploadZone";
-import { Radio, ArrowLeft, CheckCircle2, XCircle } from "lucide-react";
+import { Radio, ArrowLeft, CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { useState } from "react";
@@ -68,21 +68,33 @@ export default function UploadPage() {
         </div>
 
         {result?.status === "accepted" && (
-          <Alert className="mb-8 border-green-500/20 bg-green-500/10">
-            <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
-            <AlertTitle>Submission Accepted!</AlertTitle>
-            <AlertDescription>
-              <p className="mb-2">
-                Contest: {result.contest} {result.mode} • Callsign: {result.callsign}
-              </p>
-              <p className="mb-2">
-                Claimed Score: {result.claimedScore.toLocaleString()} • Normalized Points: {result.normalizedPoints.toLocaleString()}
-              </p>
-              <p className="text-sm">
-                Operators: {result.memberOperators.join(", ")}
-              </p>
-            </AlertDescription>
-          </Alert>
+          <>
+            <Alert className="mb-4 border-green-500/20 bg-green-500/10">
+              <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+              <AlertTitle>Submission Accepted!</AlertTitle>
+              <AlertDescription>
+                <p className="mb-2">
+                  Contest: {result.contest} {result.mode} • Callsign: {result.callsign}
+                </p>
+                <p className="mb-2">
+                  Claimed Score: {result.claimedScore.toLocaleString()} • Normalized Points: {result.normalizedPoints.toLocaleString()}
+                </p>
+                <p className="text-sm">
+                  Operators scoring points: {result.memberOperators.join(", ")}
+                </p>
+              </AlertDescription>
+            </Alert>
+            
+            {result.warning && (
+              <Alert className="mb-8 border-yellow-500/20 bg-yellow-500/10">
+                <AlertTriangle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+                <AlertTitle>Operator Dues Notice</AlertTitle>
+                <AlertDescription>
+                  {result.warning}
+                </AlertDescription>
+              </Alert>
+            )}
+          </>
         )}
 
         {result?.status === "error" && (
@@ -111,11 +123,11 @@ export default function UploadPage() {
               </li>
               <li className="flex gap-2">
                 <span className="text-primary">•</span>
-                All operators must be current YCCC members
+                At least one operator must be a current YCCC member with valid dues
               </li>
               <li className="flex gap-2">
                 <span className="text-primary">•</span>
-                Multi-op submissions must list at least 2 member operators
+                Operators without current dues will be excluded from scoring
               </li>
             </ul>
           </div>
