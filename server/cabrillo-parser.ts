@@ -18,36 +18,8 @@ export interface ParsedCabrillo {
   error?: string;
 }
 
-const CONTEST_ALIASES: Record<string, string> = {
-  'CQ-WW-CW': 'CQWW',
-  'CQ-WW-SSB': 'CQWW',
-  'CQ-WW-RTTY': 'CQWW',
-  'CQWW-CW': 'CQWW',
-  'CQWW-SSB': 'CQWW',
-  'CQWW-RTTY': 'CQWW',
-  'CQ-WPX-CW': 'CQWPX',
-  'CQ-WPX-SSB': 'CQWPX',
-  'CQ-WPX-RTTY': 'CQWPX',
-  'CQWPX-CW': 'CQWPX',
-  'CQWPX-SSB': 'CQWPX',
-  'CQWPX-RTTY': 'CQWPX',
-  'ARRL-DX-CW': 'ARRLDX',
-  'ARRL-DX-SSB': 'ARRLDX',
-  'ARRLDX-CW': 'ARRLDX',
-  'ARRLDX-SSB': 'ARRLDX',
-  'IARU-HF': 'IARU',
-  'ARRL-SS-CW': 'SWEEPSTAKES',
-  'ARRL-SS-SSB': 'SWEEPSTAKES',
-  'ARRL-10M': 'ARRL10M',
-  'ARRL-160M': 'ARRL160M',
-  'NAQP-CW': 'NAQP',
-  'NAQP-SSB': 'NAQP',
-  'NAQP-RTTY': 'NAQP',
-};
-
 function normalizeContestKey(contest: string): string {
-  const normalized = contest.toUpperCase().trim();
-  return CONTEST_ALIASES[normalized] || normalized;
+  return contest.toUpperCase().trim();
 }
 
 function extractMode(categoryMode: string | undefined, contestName: string): string {

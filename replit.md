@@ -8,6 +8,20 @@ Automated scoring system for Yankee Clipper Contest Club ham radio contests. Ing
 **Season**: 2025 (current year is automatically used)
 
 ## Recent Changes
+- **2025-10-09**: Contest naming simplified (COMPLETE)
+  - Removed CONTEST_ALIASES dictionary - no more normalization
+  - Uses exact CONTEST field from Cabrillo logs (uppercased)
+  - Example: "CQ-WW-CW" stored as-is, not mapped to "CQWW"
+  - Fixed: Added unique constraint on baselines (season_year, contest_key, mode)
+  - Simplified maintenance - logging software controls contest naming
+  
+- **2025-10-09**: Frontend improvements (COMPLETE)
+  - Removed rank icons from leaderboard
+  - Made contests and normalized points clickable
+  - Added AllSubmissions page (/submissions?callsign=XX) to view operator's submissions
+  - Fixed query parameter parsing using window.location.search
+  - Leaderboard tie handling: operators with same points get same rank (1,1,3)
+
 - **2025-10-09**: Inclusive scoring with dues validation (COMPLETE)
   - **NEW**: Inclusive scoring - accepts logs if ANY operator has valid dues
   - Only operators with current dues (>= 12/31/YYYY) receive points
@@ -95,13 +109,12 @@ NormalizedPoints = (IndividualClaimed / HighestSingleOpForContestMode) × 1,000,
 - **No single-op yet**: Uses max(IndividualClaimed) as provisional baseline
 - **Baseline recalculation**: Triggered on every submission for that contest/mode
 
-### 3. Contest Alias Mapping
-Cabrillo logs use various contest names. The parser normalizes them:
-- `CQ-WW-CW`, `CQWW-CW` → `CQWW`
-- `ARRL-DX-CW`, `ARRLDX-CW` → `ARRLDX`
-- `CQ-WPX-SSB`, `CQWPX-SSB` → `CQWPX`
-- `ARRL-SS-CW` → `SWEEPSTAKES`
-- See `server/cabrillo-parser.ts` for full list
+### 3. Contest Naming
+The system uses the exact `CONTEST:` field from Cabrillo logs (uppercased and trimmed).
+- No aliasing or normalization applied
+- Contest names controlled by logging software (e.g., N1MM, WriteLog, etc.)
+- Example: `CONTEST: CQ-WW-CW` → stored as `CQ-WW-CW`
+- Mode (CW/SSB/RTTY/MIXED) extracted separately from CATEGORY-MODE or contest name
 
 ### 4. Duplicate Submission Logic
 **Rule**: Latest submission wins per (callsign, contest, mode, year)
