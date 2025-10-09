@@ -4,18 +4,35 @@ import { Trophy, Users, Radio, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useState } from "react";
 
 export default function HomePage() {
   const currentYear = new Date().getFullYear();
+  const [activeTab, setActiveTab] = useState("season");
 
-  const { data: leaderboard = [], isLoading } = useQuery({
-    queryKey: ["/api/leaderboard"],
+  const { data: seasonLeaderboard = [], isLoading: isLoadingSeason } = useQuery({
+    queryKey: ["/api/leaderboard", "season", currentYear],
     queryFn: async () => {
-      const res = await fetch(`/api/leaderboard?year=${currentYear}`);
-      if (!res.ok) throw new Error("Failed to fetch leaderboard");
+      const res = await fetch(`/api/leaderboard?type=season&year=${currentYear}`);
+      if (!res.ok) throw new Error("Failed to fetch season leaderboard");
       return res.json();
     },
+    staleTime: 5 * 60 * 1000,
   });
+
+  const { data: alltimeLeaderboard = [], isLoading: isLoadingAlltime } = useQuery({
+    queryKey: ["/api/leaderboard", "alltime"],
+    queryFn: async () => {
+      const res = await fetch(`/api/leaderboard?type=alltime`);
+      if (!res.ok) throw new Error("Failed to fetch all-time leaderboard");
+      return res.json();
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const leaderboard = activeTab === "season" ? seasonLeaderboard : alltimeLeaderboard;
+  const isLoading = activeTab === "season" ? isLoadingSeason : isLoadingAlltime;
 
   const stats = {
     totalMembers: leaderboard.length || 0,
@@ -44,7 +61,9 @@ export default function HomePage() {
       <main className="container mx-auto px-4 py-12">
         <div className="mb-12">
           <div className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-lg p-8 md:p-12 mb-8">
-            <h2 className="text-4xl font-bold">2025 Season Leaderboard</h2>
+            <h2 className="text-4xl font-bold">
+              {activeTab === "season" ? `${currentYear} Season Leaderboard` : "All-Time Leaderboard"}
+            </h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-12">
@@ -52,38 +71,58 @@ export default function HomePage() {
               title="Active Members"
               value={stats.totalMembers}
               icon={Users}
-              description="Participants this season"
+              description={activeTab === "season" ? "Participants this season" : "All-time participants"}
             />
             <StatCard
               title="Contests Tracked"
               value={stats.activeContests}
               icon={Radio}
-              description="Completed contests"
+              description={activeTab === "season" ? "Completed contests" : "Total contest entries"}
             />
             <StatCard
               title="Top Normalized Score"
               value={stats.topScore.toLocaleString()}
               icon={Trophy}
-              description="Current season maximum"
+              description={activeTab === "season" ? "Current season maximum" : "All-time maximum"}
             />
           </div>
         </div>
 
-        <div>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-2xl font-semibold">Season Leaderboard</h3>
+            <TabsList data-testid="tabs-leaderboard">
+              <TabsTrigger value="season" data-testid="tab-season">
+                {currentYear} Season
+              </TabsTrigger>
+              <TabsTrigger value="alltime" data-testid="tab-alltime">
+                All-Time
+              </TabsTrigger>
+            </TabsList>
             <p className="text-sm text-muted-foreground">
               {isLoading ? "Loading..." : `Showing ${leaderboard.length} members by normalized points`}
             </p>
           </div>
-          {isLoading ? (
-            <div className="text-center py-12 text-muted-foreground">Loading leaderboard...</div>
-          ) : leaderboard.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">No submissions yet. Be the first to submit a log!</div>
-          ) : (
-            <ScoreboardTable entries={leaderboard} />
-          )}
-        </div>
+
+          <TabsContent value="season" data-testid="content-season">
+            {isLoading ? (
+              <div className="text-center py-12 text-muted-foreground">Loading leaderboard...</div>
+            ) : leaderboard.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">No submissions yet. Be the first to submit a log!</div>
+            ) : (
+              <ScoreboardTable entries={leaderboard} />
+            )}
+          </TabsContent>
+
+          <TabsContent value="alltime" data-testid="content-alltime">
+            {isLoading ? (
+              <div className="text-center py-12 text-muted-foreground">Loading leaderboard...</div>
+            ) : leaderboard.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">No submissions yet. Be the first to submit a log!</div>
+            ) : (
+              <ScoreboardTable entries={leaderboard} />
+            )}
+          </TabsContent>
+        </Tabs>
 
         <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="p-6 rounded-lg border border-border">
