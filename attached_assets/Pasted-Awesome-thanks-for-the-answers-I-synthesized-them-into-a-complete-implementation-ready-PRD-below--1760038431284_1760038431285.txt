@@ -1,0 +1,330 @@
+Awesome—thanks for the answers. I synthesized them into a complete, implementation-ready PRD below (rooted in your uploaded notes ). If anything feels off, I’ll revise immediately.
+
+# YCCC Contest Award Scoring — Product Requirements Document (PRD)
+
+## 0. Purpose & Outcomes
+
+Build an automated scoring system that ingests Cabrillo logs, validates eligibility, computes normalized points per operator, and publishes a continuously updated public scoreboard. Goals:
+
+* **Motivate participation** by rewarding operators fairly across station sizes and experience.
+* **Minimize admin toil** with fully automated ingestion, scoring, and publishing.
+* **Be transparent** with a clear, reproducible formula and public results.
+
+---
+
+## 1. Scope & Key Decisions (from stakeholder inputs)
+
+* **Ingestion (MVP):** Web form upload for a single Cabrillo file per submission. Email submission may be added later; when added, accept **one** log per email only. 
+* **Contest detection:** Auto-detect from the Cabrillo header (no manual entry). 
+* **Duplicates:** If multiple logs arrive for the same operator + contest + mode + year, **keep the latest** and supersede prior results. 
+* **Parsing fields (min set):** `CONTEST`, `CALLSIGN`, `CATEGORY-*`, `CLAIMED-SCORE`, `OPERATORS`, `CLUB`, `MODE`. Validate `CLUB` = “Yankee Clipper Contest Club”. 
+* **Membership check:** Cross-check `OPERATORS` against the YCCC roster; **ignore non-members** in multi-op denominator and scoring displays. 
+* **Multi-op validation:** If category is multi-op, **must list ≥2 operators**; otherwise reject. 
+* **Scoring unit:** A “contest” is **per contest × mode** (e.g., CQ WW CW, CQ WW SSB, CQ WW RTTY are distinct). 
+* **Normalization constant:** 1,000,000 (configurable value, default fixed). **Ties** for highest single-op score yield **1,000,000** for each. No mode weighting. 
+* **Storage:** SQLite (with raw-log retention). No backloading historical results (start current season). 
+* **Publishing:** Static HTML scoreboard, **updated after each log**. Show **per-member** and **per-contest (year)** totals; include **claimed** and **normalized**. No filters in v1. 
+* **Notifications:** Email confirmations to submitters; admin alerts for rejects; admin overrides allowed. Annual season reset on **Jan 1**; rolling lifetime totals continue. 
+* **NFRs:** <200 logs/contest, ~1–2 min processing SLA, private VM runtime (dev/proto in Replit), not open source initially, public scoreboard access, no anonymization, no audit trails beyond raw-log retention. 
+
+---
+
+## 2. Users & Roles
+
+* **Member (submitter):** Uploads Cabrillo; receives confirmation; appears on scoreboard.
+* **Scoring Admin:** Receives rejects/alerts; can override scores/operators; can reprocess.
+* **Public viewer:** Reads scoreboard (no auth).
+
+---
+
+## 3. Functional Requirements
+
+### 3.1 Ingestion
+
+* **MVP Web Form**
+
+  * Accept `.log` / `.cbr` (text) files (max 1 per submission).
+  * Collect contact email for confirmation (optional field; if missing, confirmation skipped).
+  * Server-side validation with clear reject reasons.
+* **Deduplication Key**
+
+  * `(normalized CALLSIGN, contest_key, mode, season_year)`.
+  * “Latest wins” by submission timestamp.
+
+### 3.2 Parsing & Validation
+
+* **Fields extracted:** `CONTEST`, `CALLSIGN`, `CLAIMED-SCORE` (from header or computed if header absent), `CATEGORY-OPERATOR`, `CATEGORY-ASSISTED`, `CATEGORY-TRANSMITTER`, `CATEGORY-BAND`, `CATEGORY-MODE`/`MODE`, `OPERATORS`, `CLUB`.
+* **Contest identification:** Map `CONTEST:` to internal canonical `contest_key` (e.g., `CQWW_CW`, `CQWW_SSB`, `CQWW_RTTY`, `ARRLDX_CW`, …). Maintain alias table for common variants/typos.
+* **Club enforcement:** If `CLUB` ≠ “Yankee Clipper Contest Club”, flag as **not club-affiliated** → **reject** (v1 strict).
+* **Multi-op validation:** If `CATEGORY-OPERATOR` indicates multi-op AND `OPERATORS` count (after membership filter) < 2 → **reject** with reason.
+* **Membership resolution:**
+
+  * Source of truth: **Roster CSV** uploaded via admin (monthly) with columns: `CALLSIGN`, `ACTIVE_YN`, `ALIAS_CALLS` (comma-separated).
+  * On submission: for each listed operator, include only those present and `ACTIVE_YN=Y`.
+
+### 3.3 Scoring Logic
+
+* **Per-submission operator points:**
+
+  ```
+  EffectiveOperators = count(member operators from OPERATORS; if single-op category, = 1)
+  IndividualClaimed = ClaimedScore / EffectiveOperators
+  HighestSingleOpForContestMode = max(ClaimedScore among submissions with EffectiveOperators == 1,
+                                      same contest_key, same mode, same season_year)
+  NormalizedPointsForEachOperator = (IndividualClaimed / HighestSingleOpForContestMode) * 1,000,000
+  ```
+
+  * **Edge cases:**
+
+    * **Ties**: If multiple highest single-ops share the same top ClaimedScore, their normalized = 1,000,000.
+    * **No single-op yet:** Queue the record; when a single-op arrives, recompute. If season ends with none, treat **highest multi-op split** as temporary baseline or set baseline = max `IndividualClaimed` (config flag default: use `max IndividualClaimed`).
+    * **Non-member operators listed:** Exclude them from `EffectiveOperators` and from any per-operator credit; if exclusion reduces count <2 for a declared multi-op → reject.
+
+### 3.4 Scoreboard & Reporting
+
+* **Views:**
+
+  * **Per Member (Season):** total normalized points; drilldown list of contests with (claimed, normalized).
+  * **Per Contest (Season):** list of operators who scored, with (claimed, normalized), and cumulative member totals.
+* **Update cadence:** Immediately after each successful submission.
+* **Presentation:** Static HTML pages generated by the pipeline (no interactive filters in v1).
+* **Download:** Season CSV exports (members, per-contest, per-submission).
+
+### 3.5 Notifications & Admin
+
+* **Submitter confirmation:** Success email with parsed fields + computed normalized points and link to scoreboard entry. On reject, email with reason and tips to fix.
+* **Admin alerts:** Email on rejects and on unusual cases (e.g., `CLAIMED-SCORE` missing, invalid CONTEST code).
+* **Admin overrides:** Web admin page:
+
+  * Adjust claimed score, operator list, category, or membership mapping (individual submission).
+  * Force recompute for affected contest/mode.
+  * Upload roster CSV.
+  * Trigger season reset (Jan 1 auto, manual button for testing).
+
+---
+
+## 4. Non-Functional Requirements
+
+* **Scale:** ≤200 logs per contest; ≤2 minutes end-to-end per submission.
+* **Reliability:** 99.5% pipeline success over a contest weekend (retry on transient errors).
+* **Security/Privacy:** Public scoreboard; admin/auth behind simple password or OAuth (e.g., Google Sign-In) on the private VM. Raw logs stored; no additional audit logs required (v1).
+* **Portability:** Dev/proto in **Replit**; deploy to private VM (Dockerized services recommended). 
+
+---
+
+## 5. System Architecture (MVP)
+
+**Components**
+
+1. **Web Uploader (Flask/FastAPI)**
+
+   * Endpoint: `POST /upload` (multipart file, optional email)
+   * Stores raw file → `blob/`
+   * Enqueues job → `jobs` table
+2. **Parser/Validator Worker**
+
+   * Reads job → parse Cabrillo → validate (club, category, membership) → write `submissions`
+   * On duplicate, supersede old submission (soft-delete or `is_active=false`)
+3. **Scorer**
+
+   * Recompute baselines for (contest_key, mode, year) on any change
+   * Write `operator_points` rows (one per eligible member in submission)
+4. **Publisher**
+
+   * Generates static HTML for season views + CSVs; atomically swap into `/var/www/scoreboard/`
+5. **Notifier**
+
+   * Emails submitter + admins (success/reject/alerts)
+6. **Admin UI**
+
+   * Roster upload, overrides, recompute, season reset
+
+**Data Flow**
+Upload → Job queued → Parse/Validate → Store raw + submission → Score (compute/update) → Publish HTML → Notify
+
+---
+
+## 6. Data Model (SQLite)
+
+```sql
+-- Members (roster)
+CREATE TABLE members (
+  callsign TEXT PRIMARY KEY,
+  active_yn INTEGER NOT NULL,        -- 1/0
+  aliases TEXT DEFAULT ''            -- comma-separated alternate calls
+);
+
+-- Raw logs
+CREATE TABLE raw_logs (
+  id INTEGER PRIMARY KEY,
+  submission_id INTEGER UNIQUE,
+  filename TEXT,
+  content BLOB,
+  received_at DATETIME
+);
+
+-- Submissions (one Cabrillo per operator/contest/mode/year)
+CREATE TABLE submissions (
+  id INTEGER PRIMARY KEY,
+  season_year INTEGER NOT NULL,
+  contest_key TEXT NOT NULL,         -- canonical (e.g., CQWW)
+  mode TEXT NOT NULL,                -- CW/SSB/RTTY...
+  callsign TEXT NOT NULL,            -- station callsign
+  category_operator TEXT,            -- SO/MO/etc
+  claimed_score INTEGER NOT NULL,
+  operator_list TEXT,                -- comma-separated as provided
+  member_operators TEXT,             -- comma-separated after membership filtering
+  effective_operators INTEGER NOT NULL,
+  club TEXT,
+  status TEXT NOT NULL,              -- accepted/rejected
+  reject_reason TEXT,
+  submitted_at DATETIME,
+  is_active INTEGER NOT NULL DEFAULT 1
+);
+
+-- Baselines (per contest x mode x year)
+CREATE TABLE baselines (
+  season_year INTEGER,
+  contest_key TEXT,
+  mode TEXT,
+  highest_single_claimed INTEGER,    -- null until present
+  PRIMARY KEY (season_year, contest_key, mode)
+);
+
+-- Operator points (one row per member operator per accepted submission)
+CREATE TABLE operator_points (
+  id INTEGER PRIMARY KEY,
+  submission_id INTEGER NOT NULL,
+  member_callsign TEXT NOT NULL,
+  individual_claimed INTEGER NOT NULL,
+  normalized_points REAL NOT NULL
+);
+```
+
+**Indexes:**
+
+* `submissions`: `(season_year, contest_key, mode, callsign, is_active)`
+* `operator_points`: `(member_callsign, season_year)` and `(season_year, contest_key, mode)`
+
+---
+
+## 7. Scoring Details & Examples
+
+**Formula** (per member operator on a submission):
+
+```
+Normalized = ( (ClaimedScore / EffectiveOperators) / HighestSingleOpForContestMode ) * 1,000,000
+```
+
+* **EffectiveOperators** excludes non-members; if it drops below 2 for multi-op → reject.
+* **HighestSingleOpForContestMode** recalculated whenever any submission in that (contest_key, mode, year) is added, changed, or removed.
+* **Tie** handling: multiple highest single-ops each define the same baseline; they all evaluate to 1,000,000 normalized.
+
+**Special handling (no single-op yet):**
+
+* Config default: use `max(IndividualClaimed)` among accepted submissions as provisional baseline; backfill if a single-op arrives later.
+
+---
+
+## 8. Scoreboard Specification
+
+**Pages**
+
+* `/index.html` — Season overview (top members by normalized total; quick links to each contest).
+* `/members/{CALL}.html` — Member page: season total + table of (contest, mode, claimed, normalized).
+* `/contests/{CONTEST_KEY}_{MODE}.html` — Contest page: table of all scoring operators with (callsign, claimed, individual claimed if multi-op, normalized).
+
+**Tables**
+
+* Columns: rank, callsign, claimed score, individual-claimed (if applicable), normalized, submission timestamp.
+
+**Data freshness**
+
+* Post-transaction generation: publisher runs immediately after scorer writes.
+
+---
+
+## 9. Admin & Ops
+
+**Admin UI**
+
+* Login (simple password or Google OAuth).
+* Upload roster CSV (validates columns; preview diff; activate).
+* Search submissions; edit/override fields; re-run scorer.
+* Season reset button (Jan 1 automatic, manual for tests).
+* Rebuild all HTML.
+
+**Monitoring**
+
+* Health endpoint `/healthz`.
+* Error logs (parser/scorer/publisher) to rotating files.
+* Email on parser rejects & baseline anomalies (e.g., zero baseline at end-of-season).
+
+---
+
+## 10. Testing & Acceptance Criteria
+
+**Unit**
+
+* Cabrillo parser: common header variants, weird whitespace, missing `CLAIMED-SCORE`.
+* Contest alias mapping correctness.
+* Membership filtering & effective operator count.
+
+**Integration**
+
+* Duplicate supersession (latest wins).
+* Multi-op rejection when members <2.
+* Baseline recompute on add/edit/delete.
+* Tie case: two single-ops with identical top claimed → both 1,000,000.
+
+**E2E**
+
+* Upload → scoreboard reflects within 2 minutes.
+* Confirmation emails contain correct fields & links.
+* Admin override triggers recompute and republish.
+
+**Performance**
+
+* 200 logs processed in < 10 minutes total on target VM.
+
+---
+
+## 11. Risks & Mitigations
+
+* **Inconsistent Cabrillo headers:** Maintain alias/regex map; robust parser with fallbacks.
+* **Roster drift:** Monthly upload + aliases support; warn when `OPERATORS` contains >30% unknowns.
+* **No single-op in a contest/mode:** Provisional baseline rule as specified.
+* **Gaming via inflated claimed scores:** Visibility + community norms; (optional v2) cross-check against published results APIs.
+
+---
+
+## 12. Roadmap
+
+**MVP (2–3 sprints)**
+
+* Web upload, parser/validator, SQLite schema, scorer, publisher (HTML), notifier, basic admin (roster upload, overrides).
+
+**v1.1**
+
+* Add email ingestion (single attachment enforced).
+* CSV exports and nicer theming for scoreboard.
+
+**v2**
+
+* Public JSON API, basic filters, opt-in audit views, optional OAuth-protected member dashboard, webhook to YCCC site.
+
+---
+
+## 13. Implementation Notes (practical)
+
+* **Tech stack:** Python 3.11 (FastAPI + Jinja2), SQLite + SQLAlchemy, APScheduler for background jobs, Docker for VM deploy, Mailer (SMTP).
+* **Cabrillo parsing:** Use a tolerant line-oriented parser; normalize keys; strict header block, lax QSO block (we don’t need QSOs for v1).
+* **Contest alias table:** Seed with CQWW, ARRL DX, NAQP, WPX; editable in admin.
+
+---
+
+If you’d like, I can generate:
+
+1. a lightweight **ERD**,
+2. a sample **Cabrillo → JSON parse** fixture, and
+3. the initial **SQLite DDL** + seed data (contest aliases, example roster).
