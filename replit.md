@@ -8,17 +8,18 @@ Automated scoring system for Yankee Clipper Contest Club ham radio contests. Ing
 **Season**: 2025 (current year is automatically used)
 
 ## Recent Changes
-- **2025-10-09**: Automated roster sync with dues validation (COMPLETE)
+- **2025-10-09**: Inclusive scoring with dues validation (COMPLETE)
+  - **NEW**: Inclusive scoring - accepts logs if ANY operator has valid dues
+  - Only operators with current dues (>= 12/31/YYYY) receive points
+  - Operators with expired/missing dues are excluded from scoring with warning
+  - Rejects ONLY if ALL operators have expired/missing dues
+  - UI shows success alert + warning about excluded operators
   - Added firstName, lastName, duesExpiration fields to members table
   - Roster scraper using native https module (fetches from https://yccc.org/roster/)
-  - Dues validation: **requires** duesExpiration >= 12/31/YYYY for current season
-  - **Critical fix**: Validation rejects operators with missing or expired dues (no bypass)
-  - **Critical fix**: Roster sync is transactional (only replaces after successful parse)
-  - **Security fix**: Removed debug endpoint, added parse validation before delete
   - API endpoint POST /api/admin/sync-roster (syncs 442+ members automatically)
   - Admin UI: "Sync from Website" button with loading states
   - Database fix: Added unique constraint on baselines (season_year, contest_key, mode)
-  - Validation rejects submissions if any operator has missing/expired dues for season year
+  - **Security fix**: Removed debug endpoint, transactional roster sync
   
 - **2025-01-09**: Complete MVP implementation
   - Database schema with PostgreSQL (members, submissions, raw_logs, baselines, operator_points)
@@ -66,18 +67,20 @@ test-data/             # Sample roster.csv and Cabrillo logs for testing
 1. User uploads Cabrillo .log/.cbr file via `/upload` page
 2. Backend parses file → extracts contest, callsign, claimed score, operators, club, mode
 3. Validates club = "Yankee Clipper Contest Club" (case-insensitive)
-4. Cross-checks operators against roster → filters to YCCC members only
-5. If multi-op and <2 members → **rejects** with error
-6. Deactivates any previous submission for same (callsign, contest, mode, year) and deletes its operator_points
-7. Stores submission + raw log
-8. Recomputes baseline (highest single-op score for that contest/mode)
-9. Calculates normalized points for each member operator
-10. Returns success with normalized points
+4. Cross-checks operators against roster → separates into valid (current dues) vs expired dues
+5. **Inclusive scoring**: Accepts if ≥1 operator has valid dues, rejects only if ALL have expired/missing dues
+6. Operators with expired dues are excluded from scoring (with warning message)
+7. Deactivates any previous submission for same (callsign, contest, mode, year) and deletes its operator_points
+8. Stores submission + raw log
+9. Recomputes baseline (highest single-op score for that contest/mode)
+10. Calculates normalized points for each valid member operator only
+11. Returns success with normalized points + warning about excluded operators (if any)
 
 ### 2. Scoring Formula
 ```
-EffectiveOperators = count(YCCC members in OPERATORS list)
+EffectiveOperators = count(YCCC members with VALID DUES in OPERATORS list)
                      (if SINGLE-OP category, always = 1)
+                     (operators with expired dues are excluded)
 
 IndividualClaimed = ClaimedScore / EffectiveOperators
 
