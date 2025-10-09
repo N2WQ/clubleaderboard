@@ -44,7 +44,7 @@ export default function HomePage() {
       <main className="container mx-auto px-4 py-12">
         <div className="mb-12">
           <div className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-lg p-8 md:p-12 mb-8">
-            <h2 className="text-4xl font-bold mb-3">2025 Season Scoreboard</h2>
+            <h2 className="text-4xl font-bold mb-3">2025 Season Leaderboard</h2>
             <p className="text-lg text-muted-foreground">
               Automated normalized scoring for Yankee Clipper Contest Club members
             </p>
@@ -102,7 +102,7 @@ export default function HomePage() {
               </div>
               <div className="flex justify-between py-2">
                 <span className="font-medium">Submissions</span>
-                <span className="text-muted-foreground">{leaderboard.reduce((sum, m) => sum + (m.contests || 0), 0)}</span>
+                <span className="text-muted-foreground">{leaderboard.reduce((sum: number, m: any) => sum + (m.contests || 0), 0)}</span>
               </div>
             </div>
           </div>

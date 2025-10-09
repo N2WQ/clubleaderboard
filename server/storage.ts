@@ -130,13 +130,23 @@ export class DbStorage implements IStorage {
       .groupBy(schema.operatorPoints.memberCallsign)
       .orderBy(desc(sql`SUM(${schema.operatorPoints.normalizedPoints})`));
 
-    return result.map((row, index) => ({
-      rank: index + 1,
-      callsign: row.callsign,
-      normalizedPoints: row.totalPoints,
-      contests: row.contests,
-      claimedScore: row.totalClaimed,
-    }));
+    let currentRank = 1;
+    let previousPoints: number | null = null;
+    
+    return result.map((row, index) => {
+      if (previousPoints !== null && row.totalPoints < previousPoints) {
+        currentRank = index + 1;
+      }
+      previousPoints = row.totalPoints;
+      
+      return {
+        rank: currentRank,
+        callsign: row.callsign,
+        normalizedPoints: row.totalPoints,
+        contests: row.contests,
+        claimedScore: row.totalClaimed,
+      };
+    });
   }
 
   async getMemberContestHistory(callsign: string, seasonYear: number): Promise<any[]> {
