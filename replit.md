@@ -8,6 +8,11 @@ Automated scoring system for Yankee Clipper Contest Club ham radio contests. Ing
 **Season**: 2025 (current year is automatically used)
 
 ## Recent Changes
+- **2025-10-09**: UI refinements and dense ranking (COMPLETE)
+  - Fixed ranking to use dense ranking (1,1,1,2) instead of competition ranking (1,1,1,4)
+  - Removed large hero text box above stats cards for cleaner layout
+  - Tabs now appear directly below stats cards
+
 - **2025-10-09**: Branding and perpetual scoring updates (COMPLETE)
   - Rebranded from "YCCC Contest Scoring" to "YCCC Awards Program"
   - Removed subtitle "Automated normalized scoring for Yankee Clipper Contest Club members"
@@ -29,7 +34,7 @@ Automated scoring system for Yankee Clipper Contest Club ham radio contests. Ing
   - Made contests and normalized points clickable
   - Added AllSubmissions page (/submissions?callsign=XX) to view operator's submissions
   - Fixed query parameter parsing using window.location.search
-  - Leaderboard tie handling: operators with same points get same rank (1,1,3)
+  - Leaderboard tie handling: dense ranking (operators with same points get same rank, e.g., 1,1,1,2)
 
 - **2025-10-09**: Inclusive scoring with dues validation (COMPLETE)
   - **NEW**: Inclusive scoring - accepts logs if ANY operator has valid dues
