@@ -114,8 +114,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/leaderboard", async (req, res) => {
     try {
+      const type = req.query.type as string || "season";
       const seasonYear = parseInt(req.query.year as string) || currentYear;
-      const leaderboard = await storage.getSeasonLeaderboard(seasonYear);
+      
+      const leaderboard = type === "alltime" 
+        ? await storage.getAllTimeLeaderboard()
+        : await storage.getSeasonLeaderboard(seasonYear);
+      
       res.json(leaderboard);
     } catch (error) {
       console.error("Leaderboard error:", error);

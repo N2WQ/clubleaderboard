@@ -30,6 +30,7 @@ export interface IStorage {
   getActiveSubmissionsByContest(seasonYear: number, contestKey: string, mode: string): Promise<Submission[]>;
   deactivateSubmission(callsign: string, contestKey: string, mode: string, seasonYear: number): Promise<void>;
   getSeasonLeaderboard(seasonYear: number): Promise<any[]>;
+  getAllTimeLeaderboard(): Promise<any[]>;
   getMemberContestHistory(callsign: string, seasonYear: number): Promise<any[]>;
   getContestResults(contestKey: string, mode: string, seasonYear: number): Promise<any[]>;
   getAllSubmissions(seasonYear: number, memberCallsign?: string): Promise<any[]>;
@@ -128,6 +129,39 @@ export class DbStorage implements IStorage {
           eq(schema.submissions.status, "accepted")
         )
       )
+      .groupBy(schema.operatorPoints.memberCallsign)
+      .orderBy(desc(sql`SUM(${schema.operatorPoints.normalizedPoints})`));
+
+    let currentRank = 1;
+    let previousPoints: number | null = null;
+    
+    return result.map((row, index) => {
+      if (previousPoints !== null && row.totalPoints < previousPoints) {
+        currentRank = index + 1;
+      }
+      previousPoints = row.totalPoints;
+      
+      return {
+        rank: currentRank,
+        callsign: row.callsign,
+        normalizedPoints: row.totalPoints,
+        contests: row.contests,
+        claimedScore: row.totalClaimed,
+      };
+    });
+  }
+
+  async getAllTimeLeaderboard(): Promise<any[]> {
+    const result = await db
+      .select({
+        callsign: schema.operatorPoints.memberCallsign,
+        totalPoints: sql<number>`SUM(${schema.operatorPoints.normalizedPoints})`,
+        contests: sql<number>`COUNT(DISTINCT ${schema.submissions.seasonYear} || '_' || ${schema.submissions.contestKey} || '_' || ${schema.submissions.mode})`,
+        totalClaimed: sql<number>`SUM(${schema.operatorPoints.individualClaimed})`,
+      })
+      .from(schema.operatorPoints)
+      .innerJoin(schema.submissions, eq(schema.operatorPoints.submissionId, schema.submissions.id))
+      .where(eq(schema.submissions.status, "accepted"))
       .groupBy(schema.operatorPoints.memberCallsign)
       .orderBy(desc(sql`SUM(${schema.operatorPoints.normalizedPoints})`));
 
