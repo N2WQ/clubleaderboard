@@ -8,6 +8,16 @@ Automated scoring system for Yankee Clipper Contest Club ham radio contests. Ing
 **Season**: 2025 (current year is automatically used)
 
 ## Recent Changes
+- **2025-10-10**: Multiple file upload and UI cleanup (COMPLETE)
+  - Implemented multiple file upload capability on upload page
+  - Users can now select and upload multiple .log/.cbr files at once
+  - Files processed sequentially with individual result alerts per file
+  - FileUploadZone updated: supports multiple selection, shows file list, dynamic "Submit X Logs" button
+  - UploadPage processes files in loop, displays per-file success/error with filename
+  - Removed redundant "Top YCCC Score" stat card from homepage (same as #1 rank)
+  - Homepage grid changed from 3 columns to 2 columns (Active Members + Contests Tracked)
+  - Cleaner UI with less redundant information
+
 - **2025-10-10**: Admin database clearing functionality (COMPLETE)
   - Added "Clear All Contest Data" button in Admin Settings tab
   - Clears all submissions, operator_points, baselines, and raw_logs
