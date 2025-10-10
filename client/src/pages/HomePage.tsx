@@ -1,6 +1,6 @@
 import { ScoreboardTable } from "@/components/ScoreboardTable";
 import { StatCard } from "@/components/StatCard";
-import { Trophy, Users, Radio, Upload } from "lucide-react";
+import { Users, Radio, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
@@ -48,7 +48,6 @@ export default function HomePage() {
     activeMembers: seasonStats?.activeMembers || 0,
     eligibleMembers: seasonStats?.eligibleMembers || 0,
     contestsTracked: seasonStats?.contests?.length || 0,
-    topScore: leaderboard[0]?.normalizedPoints || 0,
   };
   return (
     <div className="min-h-screen bg-background">
@@ -71,7 +70,7 @@ export default function HomePage() {
 
       <main className="container mx-auto px-4 py-12">
         <div className="mb-12">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <StatCard
               title="Active Members"
               value={`${stats.activeMembers}/${stats.eligibleMembers}`}
@@ -87,12 +86,6 @@ export default function HomePage() {
                 className="cursor-pointer hover-elevate active-elevate-2"
               />
             </Link>
-            <StatCard
-              title="Top YCCC Score"
-              value={stats.topScore.toLocaleString()}
-              icon={Trophy}
-              description={activeTab === "season" ? "Current season maximum" : "All-time maximum"}
-            />
           </div>
         </div>
 
