@@ -269,6 +269,7 @@ export class DbStorage implements IStorage {
         individualClaimed: schema.operatorPoints.individualClaimed,
         normalizedPoints: schema.operatorPoints.normalizedPoints,
         submittedAt: schema.submissions.submittedAt,
+        status: schema.submissions.status,
       })
       .from(schema.submissions)
       .innerJoin(schema.operatorPoints, eq(schema.submissions.id, schema.operatorPoints.submissionId))

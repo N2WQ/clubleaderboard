@@ -10,6 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { StatusBadge } from "@/components/StatusBadge";
 
 export default function AllSubmissionsPage() {
   const searchParams = new URLSearchParams(window.location.search);
@@ -71,6 +72,7 @@ export default function AllSubmissionsPage() {
                   <TableHead className="text-right">Claimed Score</TableHead>
                   <TableHead className="text-right">Individual</TableHead>
                   <TableHead className="text-right">YCCC Points</TableHead>
+                  <TableHead>Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -101,6 +103,9 @@ export default function AllSubmissionsPage() {
                     </TableCell>
                     <TableCell className="text-right font-mono font-semibold text-primary">
                       {Math.round(sub.normalizedPoints).toLocaleString()}
+                    </TableCell>
+                    <TableCell>
+                      <StatusBadge status={sub.status} />
                     </TableCell>
                   </TableRow>
                 ))}
