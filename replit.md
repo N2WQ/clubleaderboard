@@ -33,8 +33,9 @@ This project is an automated scoring system for the Yankee Clipper Contest Club 
 
 ### UI/UX Decisions
 - **Layout**: Clean, minimal design with tabs for different leaderboard views (e.g., "2025 Season", "All-Time", "Historical").
-- **Information Density**: Focuses on displaying key data clearly, with clickable elements for detailed views.
+- **Information Density**: Focuses on displaying key data clearly, with clickable elements for detailed views. Homepage features streamlined 2-card layout combining stats with top performer lists.
 - **Branding**: Renamed to "YCCC Awards Program" to reflect a broader scope.
+- **Homepage Cards**: Two combined cards - (1) Active Members + Most Active Operators, (2) Contests Tracked + Most Competitive Contests. Each card has clickable stat area with navigation and informational list below.
 
 ### Database Schema
 - **members**: Stores callsign, active status, aliases, names, and dues expiration.
