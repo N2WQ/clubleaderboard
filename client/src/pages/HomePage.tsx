@@ -88,7 +88,7 @@ export default function HomePage() {
               />
             </Link>
             <StatCard
-              title="Top Normalized Score"
+              title="Top YCCC Score"
               value={stats.topScore.toLocaleString()}
               icon={Trophy}
               description={activeTab === "season" ? "Current season maximum" : "All-time maximum"}
@@ -107,7 +107,7 @@ export default function HomePage() {
               </TabsTrigger>
             </TabsList>
             <p className="text-sm text-muted-foreground">
-              {isLoading ? "Loading..." : `Showing ${leaderboard.length} members by normalized points`}
+              {isLoading ? "Loading..." : `Showing ${leaderboard.length} members by YCCC points`}
             </p>
           </div>
 
