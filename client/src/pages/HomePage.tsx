@@ -122,77 +122,86 @@ export default function HomePage() {
       <main className="container mx-auto px-4 py-12">
         <div className="mb-12">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Link href="/members">
-              <StatCard
-                title="Active Members"
-                value={`${stats.activeMembers}/${stats.eligibleMembers}`}
-                icon={Users}
-                description="Click to view all eligible members"
-                className="cursor-pointer hover-elevate active-elevate-2"
-              />
-            </Link>
-            <Link href="/contests">
-              <StatCard
-                title="Contests Tracked"
-                value={stats.contestsTracked}
-                icon={Radio}
-                description="Click to view all contests"
-                className="cursor-pointer hover-elevate active-elevate-2"
-              />
-            </Link>
-          </div>
-        </div>
-
-        <div className="mb-12">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Card className="p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <Trophy className="h-5 w-5 text-primary" />
-                <h3 className="text-lg font-semibold">Most Competitive Contests</h3>
-              </div>
-              <p className="text-sm text-muted-foreground mb-4">Top contests by participating operators (all years)</p>
-              <div className="space-y-3">
-                {competitiveContests.slice(0, 5).map((contest: any, index: number) => (
-                  <div key={`${contest.contestKey}-${contest.mode}`} className="flex items-center justify-between" data-testid={`competitive-contest-${index}`}>
-                    <div className="flex items-center gap-3">
-                      <span className="text-muted-foreground text-sm w-6">#{index + 1}</span>
-                      <div>
-                        <span className="font-mono font-semibold text-sm">{contest.contestKey}</span>
-                        <span className="text-muted-foreground text-xs ml-2">{contest.mode}</span>
-                      </div>
+              <Link href="/members" className="block mb-6" data-testid="link-members">
+                <div className="flex items-center justify-between gap-3 cursor-pointer hover-elevate active-elevate-2 p-4 -m-4 rounded-md">
+                  <div className="flex items-center gap-3">
+                    <Users className="h-8 w-8 text-primary" />
+                    <div>
+                      <h3 className="text-2xl font-bold font-mono" data-testid="text-active-members">
+                        {stats.activeMembers}/{stats.eligibleMembers}
+                      </h3>
+                      <p className="text-sm text-muted-foreground">Active Members</p>
                     </div>
-                    <span className="text-sm font-semibold text-primary" data-testid={`operator-count-${index}`}>
-                      {contest.operatorCount} operators
-                    </span>
                   </div>
-                ))}
-                {competitiveContests.length === 0 && (
-                  <p className="text-sm text-muted-foreground text-center py-4">No data yet</p>
-                )}
+                  <div className="text-muted-foreground">→</div>
+                </div>
+              </Link>
+              
+              <div className="border-t pt-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Target className="h-4 w-4 text-primary" />
+                  <h4 className="text-sm font-semibold">Most Active Operators</h4>
+                </div>
+                <div className="space-y-2">
+                  {activeOperators.slice(0, 5).map((operator: any, index: number) => (
+                    <div key={operator.callsign} className="flex items-center justify-between text-sm" data-testid={`active-operator-${index}`}>
+                      <div className="flex items-center gap-2">
+                        <span className="text-muted-foreground w-5">#{index + 1}</span>
+                        <span className="font-mono font-semibold">{operator.callsign}</span>
+                      </div>
+                      <span className="text-muted-foreground" data-testid={`entry-count-${index}`}>
+                        {operator.entryCount} entries
+                      </span>
+                    </div>
+                  ))}
+                  {activeOperators.length === 0 && (
+                    <p className="text-sm text-muted-foreground text-center py-2">No data yet</p>
+                  )}
+                </div>
               </div>
             </Card>
 
             <Card className="p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <Target className="h-5 w-5 text-primary" />
-                <h3 className="text-lg font-semibold">Most Active Operators</h3>
-              </div>
-              <p className="text-sm text-muted-foreground mb-4">Top operators by contest entries (all years)</p>
-              <div className="space-y-3">
-                {activeOperators.slice(0, 5).map((operator: any, index: number) => (
-                  <div key={operator.callsign} className="flex items-center justify-between" data-testid={`active-operator-${index}`}>
-                    <div className="flex items-center gap-3">
-                      <span className="text-muted-foreground text-sm w-6">#{index + 1}</span>
-                      <span className="font-mono font-semibold text-sm">{operator.callsign}</span>
+              <Link href="/contests" className="block mb-6" data-testid="link-contests">
+                <div className="flex items-center justify-between gap-3 cursor-pointer hover-elevate active-elevate-2 p-4 -m-4 rounded-md">
+                  <div className="flex items-center gap-3">
+                    <Radio className="h-8 w-8 text-primary" />
+                    <div>
+                      <h3 className="text-2xl font-bold font-mono" data-testid="text-contests-tracked">
+                        {stats.contestsTracked}
+                      </h3>
+                      <p className="text-sm text-muted-foreground">Contests Tracked</p>
                     </div>
-                    <span className="text-sm font-semibold text-primary" data-testid={`entry-count-${index}`}>
-                      {operator.entryCount} entries
-                    </span>
                   </div>
-                ))}
-                {activeOperators.length === 0 && (
-                  <p className="text-sm text-muted-foreground text-center py-4">No data yet</p>
-                )}
+                  <div className="text-muted-foreground">→</div>
+                </div>
+              </Link>
+              
+              <div className="border-t pt-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Trophy className="h-4 w-4 text-primary" />
+                  <h4 className="text-sm font-semibold">Most Competitive Contests</h4>
+                </div>
+                <div className="space-y-2">
+                  {competitiveContests.slice(0, 5).map((contest: any, index: number) => (
+                    <div key={`${contest.contestKey}-${contest.mode}`} className="flex items-center justify-between text-sm" data-testid={`competitive-contest-${index}`}>
+                      <div className="flex items-center gap-2">
+                        <span className="text-muted-foreground w-5">#{index + 1}</span>
+                        <div>
+                          <span className="font-mono font-semibold">{contest.contestKey}</span>
+                          <span className="text-muted-foreground text-xs ml-1">{contest.mode}</span>
+                        </div>
+                      </div>
+                      <span className="text-muted-foreground" data-testid={`operator-count-${index}`}>
+                        {contest.operatorCount} ops
+                      </span>
+                    </div>
+                  ))}
+                  {competitiveContests.length === 0 && (
+                    <p className="text-sm text-muted-foreground text-center py-2">No data yet</p>
+                  )}
+                </div>
               </div>
             </Card>
           </div>
