@@ -30,7 +30,9 @@ This project is an automated scoring system for the Yankee Clipper Contest Club 
 - **Admin Functionality**: Includes features for syncing the member roster from the YCCC website and clearing all contest data.
 - **Members List**: Clickable Active Members stat card links to /members page showing all eligible members with current dues for the season. Displays callsign, name, dues expiration, and aliases in a sortable table.
 - **Contest Insights**: Homepage displays "Most Competitive Contests" showing top 5 contests by unique operator count (all years) and "Most Active Operators" showing top 5 operators by submission count (all years). APIs: `/api/insights/competitive-contests` and `/api/insights/active-operators`.
+- **Operator Detail Page**: New page at `/operator/:callsign` shows comprehensive operator history. Displays all-time rank, total YCCC points, total contests, and a detailed table of all submissions. API: `/api/operator/:callsign`.
 - **Year Display**: All submission and contest result views display the contest year extracted from QSO dates in the Cabrillo log, not the submission timestamp. This ensures accurate historical tracking.
+- **Interactive Insights**: Operator and entry counts in homepage insight cards are clickable. Clicking operator count in "Most Competitive Contests" navigates to contest detail page; clicking entry count in "Most Active Operators" navigates to operator detail page showing all submissions.
 
 ### UI/UX Decisions
 - **Layout**: Clean, minimal design with tabs for different leaderboard views (e.g., "2025 Season", "All-Time", "Historical").
