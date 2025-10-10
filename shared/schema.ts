@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, timestamp, real, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, timestamp, real, boolean, unique } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -30,6 +30,7 @@ export const submissions = pgTable("submissions", {
   claimedScore: integer("claimed_score").notNull(),
   operatorList: text("operator_list"),
   memberOperators: text("member_operators"),
+  totalOperators: integer("total_operators").notNull().default(1),
   effectiveOperators: integer("effective_operators").notNull(),
   club: text("club"),
   status: text("status").notNull(),
@@ -45,7 +46,7 @@ export const baselines = pgTable("baselines", {
   mode: text("mode").notNull(),
   highestSingleClaimed: integer("highest_single_claimed"),
 }, (table) => ({
-  uniqueKey: sql`UNIQUE (${table.seasonYear}, ${table.contestKey}, ${table.mode})`,
+  uniqueKey: unique().on(table.seasonYear, table.contestKey, table.mode),
 }));
 
 export const operatorPoints = pgTable("operator_points", {
@@ -66,6 +67,7 @@ export const insertSubmissionSchema = z.object({
   claimedScore: z.number(),
   operatorList: z.string().optional(),
   memberOperators: z.string().optional(),
+  totalOperators: z.number(),
   effectiveOperators: z.number(),
   club: z.string().optional(),
   status: z.string(),

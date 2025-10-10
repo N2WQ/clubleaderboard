@@ -97,7 +97,7 @@ export async function computeNormalizedPoints(
   submission: Submission,
   seasonYear: number
 ): Promise<number> {
-  const individualClaimed = submission.claimedScore / submission.effectiveOperators;
+  const individualClaimed = submission.claimedScore / submission.totalOperators;
 
   const baseline = await storage.getBaseline(seasonYear, submission.contestKey, submission.mode);
   
@@ -111,7 +111,7 @@ export async function computeNormalizedPoints(
     const singleOpSubmissions = allSubmissions.filter(s => s.effectiveOperators === 1);
     
     if (singleOpSubmissions.length === 0) {
-      const maxIndividual = Math.max(...allSubmissions.map(s => s.claimedScore / s.effectiveOperators));
+      const maxIndividual = Math.max(...allSubmissions.map(s => s.claimedScore / s.totalOperators));
       return maxIndividual > 0 ? (individualClaimed / maxIndividual) * 1000000 : 1000000;
     }
     
@@ -155,14 +155,14 @@ export async function recomputeBaseline(
     });
   } else {
     // No single-op baseline yet, use max individual claimed as provisional baseline
-    maxScore = Math.max(...acceptedSubmissions.map(s => s.claimedScore / s.effectiveOperators));
+    maxScore = Math.max(...acceptedSubmissions.map(s => s.claimedScore / s.totalOperators));
   }
 
   for (const sub of acceptedSubmissions) {
     await storage.deleteOperatorPointsBySubmission(sub.id);
     
     const memberOps = sub.memberOperators?.split(',') || [];
-    const individualClaimed = sub.claimedScore / sub.effectiveOperators;
+    const individualClaimed = sub.claimedScore / sub.totalOperators;
     const normalizedPoints = (individualClaimed / maxScore) * 1000000;
     
     for (const memberCall of memberOps) {

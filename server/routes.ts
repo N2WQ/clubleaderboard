@@ -64,6 +64,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         );
       }
 
+      const totalOperators = data.operators.length > 0 ? data.operators.length : 1;
+      
       const submission = await storage.createSubmission({
         seasonYear: currentYear,
         contestKey: data.contest,
@@ -73,6 +75,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         claimedScore: data.claimedScore,
         operatorList: data.operators.join(','),
         memberOperators: validation.memberOperators?.join(','),
+        totalOperators,
         effectiveOperators: validation.effectiveOperators || 1,
         club: data.club,
         status: "accepted",
@@ -89,7 +92,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const baseline = await storage.getBaseline(currentYear, data.contest, data.mode);
       const memberOps = validation.memberOperators || [data.callsign];
-      const individualClaimed = data.claimedScore / (validation.effectiveOperators || 1);
+      const individualClaimed = data.claimedScore / totalOperators;
       const normalizedPoints = baseline?.highestSingleClaimed 
         ? Math.round((individualClaimed / baseline.highestSingleClaimed) * 1000000)
         : 1000000;
