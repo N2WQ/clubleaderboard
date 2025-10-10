@@ -29,7 +29,7 @@ export function ScoreboardTable({ entries }: ScoreboardTableProps) {
             <TableHead className="w-20">Rank</TableHead>
             <TableHead>Callsign</TableHead>
             <TableHead className="text-right">Contests</TableHead>
-            <TableHead className="text-right">Total Claimed</TableHead>
+            <TableHead className="text-right">Claimed Points</TableHead>
             <TableHead className="text-right">YCCC Points</TableHead>
           </TableRow>
         </TableHeader>

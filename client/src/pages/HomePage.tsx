@@ -146,7 +146,7 @@ export default function HomePage() {
               </li>
               <li className="flex gap-2">
                 <span className="text-primary">3.</span>
-                Scores normalized to 1M points per contest/mode
+                YCCC Points calculated to 1M maximum per contest/mode
               </li>
               <li className="flex gap-2">
                 <span className="text-primary">4.</span>

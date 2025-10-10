@@ -78,7 +78,7 @@ export default function UploadPage() {
                   Contest: {result.contest} {result.mode} • Callsign: {result.callsign}
                 </p>
                 <p className="mb-2">
-                  Claimed Score: {result.claimedScore.toLocaleString()} • Normalized Points: {result.normalizedPoints.toLocaleString()}
+                  Claimed Score: {result.claimedScore.toLocaleString()} • YCCC Points: {result.normalizedPoints.toLocaleString()}
                 </p>
                 <p className="text-sm">
                   Operators scoring points: {result.memberOperators.join(", ")}
@@ -151,7 +151,7 @@ export default function UploadPage() {
                 </div>
                 <div>
                   <p className="font-medium text-foreground">Scoring</p>
-                  <p>Normalized points calculated based on contest/mode baseline</p>
+                  <p>YCCC points calculated based on contest/mode baseline</p>
                 </div>
               </div>
               <div className="flex gap-3">

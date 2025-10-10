@@ -68,7 +68,7 @@ export default function MemberDetailPage() {
                   <TableHead>Contest</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead className="text-right">Claimed Score</TableHead>
-                  <TableHead className="text-right">Normalized Points</TableHead>
+                  <TableHead className="text-right">YCCC Points</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

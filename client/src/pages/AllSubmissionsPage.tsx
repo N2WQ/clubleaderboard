@@ -70,7 +70,7 @@ export default function AllSubmissionsPage() {
                   <TableHead>Operator</TableHead>
                   <TableHead className="text-right">Claimed Score</TableHead>
                   <TableHead className="text-right">Individual</TableHead>
-                  <TableHead className="text-right">Normalized</TableHead>
+                  <TableHead className="text-right">YCCC Points</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

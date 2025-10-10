@@ -67,7 +67,7 @@ export default function ContestDetailPage() {
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-2xl font-semibold">All Submissions</h3>
                 <p className="text-sm text-muted-foreground">
-                  Normalized to 1M points maximum
+                  YCCC Points to 1M maximum
                 </p>
               </div>
               {results.length === 0 ? (
@@ -82,7 +82,7 @@ export default function ContestDetailPage() {
             <div className="mt-8 p-6 rounded-lg border border-border bg-muted/30">
               <h4 className="font-semibold mb-3">Scoring Formula</h4>
               <div className="font-mono text-sm bg-background p-4 rounded border border-border">
-                <p className="mb-2">Normalized Points = (Individual Claimed / Highest Single-Op) × 1,000,000</p>
+                <p className="mb-2">YCCC Points = (Individual Claimed / Highest Single-Op) × 1,000,000</p>
                 <p className="text-muted-foreground text-xs">
                   where Individual Claimed = Claimed Score / Total Operators
                 </p>
