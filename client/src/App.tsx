@@ -11,6 +11,7 @@ import ContestDetailPage from "@/pages/ContestDetailPage";
 import ContestsListPage from "@/pages/ContestsListPage";
 import AdminPage from "@/pages/AdminPage";
 import AllSubmissionsPage from "@/pages/AllSubmissionsPage";
+import MembersListPage from "@/pages/MembersListPage";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -23,6 +24,7 @@ function Router() {
       <Route path="/contests" component={ContestsListPage} />
       <Route path="/admin" component={AdminPage} />
       <Route path="/submissions" component={AllSubmissionsPage} />
+      <Route path="/members" component={MembersListPage} />
       <Route component={NotFound} />
     </Switch>
   );

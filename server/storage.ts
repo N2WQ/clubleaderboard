@@ -21,6 +21,7 @@ export const db = drizzle(client, { schema });
 export interface IStorage {
   getMember(callsign: string): Promise<Member | undefined>;
   getAllActiveMembers(): Promise<Member[]>;
+  getEligibleMembers(seasonYear: number): Promise<Member[]>;
   createMember(member: InsertMember): Promise<Member>;
   createManyMembers(members: InsertMember[]): Promise<void>;
   deleteAllMembers(): Promise<void>;
@@ -55,6 +56,20 @@ export class DbStorage implements IStorage {
 
   async getAllActiveMembers(): Promise<Member[]> {
     return db.select().from(schema.members).where(eq(schema.members.activeYn, true));
+  }
+
+  async getEligibleMembers(seasonYear: number): Promise<Member[]> {
+    const cutoffDate = `12/31/${seasonYear}`;
+    return db
+      .select()
+      .from(schema.members)
+      .where(
+        and(
+          eq(schema.members.activeYn, true),
+          sql`${schema.members.duesExpiration} >= ${cutoffDate}`
+        )
+      )
+      .orderBy(schema.members.callsign);
   }
 
   async createMember(member: InsertMember): Promise<Member> {

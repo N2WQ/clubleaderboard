@@ -101,12 +101,15 @@ export default function HomePage() {
       <main className="container mx-auto px-4 py-12">
         <div className="mb-12">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <StatCard
-              title="Active Members"
-              value={`${stats.activeMembers}/${stats.eligibleMembers}`}
-              icon={Users}
-              description="Active members / Eligible members with current dues"
-            />
+            <Link href="/members">
+              <StatCard
+                title="Active Members"
+                value={`${stats.activeMembers}/${stats.eligibleMembers}`}
+                icon={Users}
+                description="Click to view all eligible members"
+                className="cursor-pointer hover-elevate active-elevate-2"
+              />
+            </Link>
             <Link href="/contests">
               <StatCard
                 title="Contests Tracked"

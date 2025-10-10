@@ -155,6 +155,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/members/eligible", async (req, res) => {
+    try {
+      const seasonYear = parseInt(req.query.year as string) || currentYear;
+      const members = await storage.getEligibleMembers(seasonYear);
+      res.json({
+        seasonYear,
+        count: members.length,
+        members,
+      });
+    } catch (error) {
+      console.error("Eligible members error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   app.get("/api/member/:callsign", async (req, res) => {
     try {
       const callsign = req.params.callsign.toUpperCase();

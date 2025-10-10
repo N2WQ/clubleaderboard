@@ -28,6 +28,7 @@ This project is an automated scoring system for the Yankee Clipper Contest Club 
 - **Perpetual Scoring**: Provides both current season and all-time aggregated leaderboards.
 - **Multiple File Upload**: Supports simultaneous upload of multiple Cabrillo log files.
 - **Admin Functionality**: Includes features for syncing the member roster from the YCCC website and clearing all contest data.
+- **Members List**: Clickable Active Members stat card links to /members page showing all eligible members with current dues for the season. Displays callsign, name, dues expiration, and aliases in a sortable table.
 
 ### UI/UX Decisions
 - **Layout**: Clean, minimal design with tabs for different leaderboard views (e.g., "2025 Season", "All-Time", "Historical").
