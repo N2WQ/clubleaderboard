@@ -8,6 +8,16 @@ Automated scoring system for Yankee Clipper Contest Club ham radio contests. Ing
 **Season**: 2025 (current year is automatically used)
 
 ## Recent Changes
+- **2025-10-10**: Claimed Points rounding implementation (COMPLETE)
+  - Implemented consistent rounding policy: round individualClaimed at storage, display all values as integers
+  - Backend: All calculations use full precision, individualClaimed rounded to nearest integer at storage boundary
+  - Backend: normalizedPoints stored with full precision for accurate rankings
+  - Frontend: All displays round for presentation (Math.round().toLocaleString())
+  - Storage: SUM queries aggregate already-rounded integers, no SQL ROUND needed
+  - API responses: Round normalizedPoints for display in upload success response
+  - Fixed nullish coalescing (?? instead of ||) to handle legitimate zero values
+  - Result: All "Claimed Points", "Individual", and "YCCC Points" display as integers throughout UI
+
 - **2025-10-10**: Multiple file upload and UI cleanup (COMPLETE)
   - Implemented multiple file upload capability on upload page
   - Users can now select and upload multiple .log/.cbr files at once
