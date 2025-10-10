@@ -6,6 +6,8 @@ import { storage } from "./storage";
 import { parseCabrillo } from "./cabrillo-parser";
 import { validateSubmission, computeNormalizedPoints, recomputeBaseline } from "./scoring-engine";
 import { fetchYCCCRoster } from "./roster-scraper";
+import { setupWebSocket, broadcast } from "./websocket";
+import { startScheduler } from "./scheduler";
 
 const upload = multer({ 
   storage: multer.memoryStorage(),
@@ -99,6 +101,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const normalizedPoints = baseline?.highestSingleClaimed 
         ? (individualClaimed / baseline.highestSingleClaimed) * 1000000
         : 1000000;
+
+      broadcast("submission:created", {
+        submissionId: submission.id,
+        callsign: data.callsign,
+        contest: data.contest,
+        mode: data.mode,
+        seasonYear: contestYear,
+      });
 
       res.json({
         status: "accepted",
@@ -331,6 +341,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.deleteAllMembers();
       await storage.createManyMembers(members);
 
+      broadcast("roster:synced", {
+        count: members.length,
+      });
+
       res.json({ 
         success: true,
         count: members.length,
@@ -368,6 +382,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const httpServer = createServer(app);
+  
+  setupWebSocket(httpServer);
+  startScheduler();
 
   return httpServer;
 }

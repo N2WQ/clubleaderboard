@@ -7,12 +7,26 @@ import { useQuery } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
-import { useState } from "react";
+import { useState, useCallback } from "react";
+import { useWebSocket } from "@/hooks/use-websocket";
+import { queryClient } from "@/lib/queryClient";
 
 export default function HomePage() {
   const currentYear = new Date().getFullYear();
   const [activeTab, setActiveTab] = useState("current");
   const [selectedYear, setSelectedYear] = useState<number>(currentYear);
+
+  const handleWebSocketMessage = useCallback((message: { event: string; data: any }) => {
+    if (message.event === "submission:created" || message.event === "roster:synced") {
+      queryClient.invalidateQueries({ queryKey: ["/api/leaderboard"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/insights/competitive-contests"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/insights/active-operators"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/available-years"] });
+    }
+  }, []);
+
+  useWebSocket(handleWebSocketMessage);
 
   const { data: currentYearLeaderboard = [], isLoading: isLoadingCurrent } = useQuery({
     queryKey: ["/api/leaderboard", "season", currentYear],
