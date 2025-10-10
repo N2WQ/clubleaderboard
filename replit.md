@@ -8,6 +8,13 @@ Automated scoring system for Yankee Clipper Contest Club ham radio contests. Ing
 **Season**: 2025 (current year is automatically used)
 
 ## Recent Changes
+- **2025-10-10**: Admin database clearing functionality (COMPLETE)
+  - Added "Clear All Contest Data" button in Admin Settings tab
+  - Clears all submissions, operator_points, baselines, and raw_logs
+  - Preserves member roster (members table untouched)
+  - Proper error handling and success feedback with toast notifications
+  - Page auto-reloads after successful clear to refresh UI
+
 - **2025-10-10**: Individual score calculation fix (COMPLETE)
   - Fixed individual score to divide by total operators (ALL operators) instead of effective operators (YCCC-eligible only)
   - Added totalOperators field to submissions table (count from Cabrillo OPERATORS field)
@@ -202,7 +209,6 @@ This ensures leaderboard queries only count the most recent submission.
 - No email notifications (email field collected but not used)
 - No CSV export functionality (endpoint structure exists, not wired up)
 - No static HTML generation (PRD specified, but dynamic React app serves same purpose)
-- No season reset functionality (button exists, not implemented - would archive current season data)
 - Member and Contest detail pages show mock data (not wired to dynamic routes yet)
 
 ## Deployment Notes
