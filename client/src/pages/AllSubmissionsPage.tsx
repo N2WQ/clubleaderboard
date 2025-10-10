@@ -66,7 +66,7 @@ export default function AllSubmissionsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Date</TableHead>
+                  <TableHead>Year</TableHead>
                   <TableHead>Contest</TableHead>
                   <TableHead>Mode</TableHead>
                   <TableHead>Station</TableHead>
@@ -84,8 +84,8 @@ export default function AllSubmissionsPage() {
                     className="hover-elevate"
                     data-testid={`row-submission-${sub.id}`}
                   >
-                    <TableCell className="font-medium">
-                      {new Date(sub.submittedAt).toLocaleDateString()}
+                    <TableCell className="font-mono font-semibold" data-testid={`text-year-${sub.id}`}>
+                      {sub.contestYear}
                     </TableCell>
                     <TableCell className="font-semibold" data-testid={`text-contest-${sub.id}`}>
                       {sub.contestKey}

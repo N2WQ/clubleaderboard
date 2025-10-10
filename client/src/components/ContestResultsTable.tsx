@@ -9,6 +9,7 @@ import {
 import { StatusBadge } from "./StatusBadge";
 
 interface ContestResult {
+  contestYear: number;
   callsign: string;
   claimedScore: number;
   individualClaimed: number;
@@ -27,6 +28,7 @@ export function ContestResultsTable({ results }: ContestResultsTableProps) {
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead>Year</TableHead>
             <TableHead>Callsign</TableHead>
             <TableHead className="text-right">Eligible Operators</TableHead>
             <TableHead className="text-right">Claimed Score</TableHead>
@@ -37,6 +39,9 @@ export function ContestResultsTable({ results }: ContestResultsTableProps) {
         <TableBody>
           {results.map((result) => (
             <TableRow key={result.callsign} className="hover-elevate">
+              <TableCell className="font-mono font-semibold" data-testid={`text-year-${result.callsign}`}>
+                {result.contestYear}
+              </TableCell>
               <TableCell className="font-mono font-semibold">
                 {result.callsign}
               </TableCell>

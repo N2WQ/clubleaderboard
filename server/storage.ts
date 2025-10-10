@@ -237,6 +237,7 @@ export class DbStorage implements IStorage {
   async getContestResults(contestKey: string, mode: string, seasonYear: number): Promise<any[]> {
     const results = await db
       .select({
+        contestYear: schema.submissions.contestYear,
         callsign: schema.submissions.callsign,
         claimedScore: schema.submissions.claimedScore,
         totalOperators: schema.submissions.totalOperators,
@@ -258,6 +259,7 @@ export class DbStorage implements IStorage {
       )
       .groupBy(
         schema.submissions.id,
+        schema.submissions.contestYear,
         schema.submissions.callsign,
         schema.submissions.claimedScore,
         schema.submissions.totalOperators,
@@ -291,6 +293,7 @@ export class DbStorage implements IStorage {
     return db
       .select({
         id: schema.submissions.id,
+        contestYear: schema.submissions.contestYear,
         contestKey: schema.submissions.contestKey,
         mode: schema.submissions.mode,
         callsign: schema.submissions.callsign,
