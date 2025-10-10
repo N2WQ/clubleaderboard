@@ -8,6 +8,13 @@ Automated scoring system for Yankee Clipper Contest Club ham radio contests. Ing
 **Season**: 2025 (current year is automatically used)
 
 ## Recent Changes
+- **2025-10-10**: Individual score calculation fix (COMPLETE)
+  - Fixed individual score to divide by total operators (ALL operators) instead of effective operators (YCCC-eligible only)
+  - Added totalOperators field to submissions table (count from Cabrillo OPERATORS field)
+  - Updated scoring engine to use totalOperators for individual score calculation
+  - Fixed unique constraint on baselines table using proper Drizzle syntax
+  - Example: 5 total ops, 2 YCCC → individual score = claimedScore/5 (not /2)
+
 - **2025-10-09**: UI refinements and dense ranking (COMPLETE)
   - Fixed ranking to use dense ranking (1,1,1,2) instead of competition ranking (1,1,1,4)
   - Removed large hero text box above stats cards for cleaner layout
@@ -107,17 +114,23 @@ test-data/             # Sample roster.csv and Cabrillo logs for testing
 
 ### 2. Scoring Formula
 ```
+TotalOperators = count(ALL operators in OPERATORS field from Cabrillo log)
+                (if SINGLE-OP or no OPERATORS field, = 1)
+
 EffectiveOperators = count(YCCC members with VALID DUES in OPERATORS list)
                      (if SINGLE-OP category, always = 1)
                      (operators with expired dues are excluded)
+                     (used ONLY for point splitting, NOT for individual score)
 
-IndividualClaimed = ClaimedScore / EffectiveOperators
+IndividualClaimed = ClaimedScore / TotalOperators
 
 HighestSingleOpForContestMode = max(ClaimedScore where EffectiveOperators == 1,
                                     same contest_key, same mode, same season)
 
 NormalizedPoints = (IndividualClaimed / HighestSingleOpForContestMode) × 1,000,000
 ```
+
+**Key Change (2025-10-10)**: Individual score now divides by TotalOperators (all operators) instead of EffectiveOperators (YCCC-eligible only). This ensures fair scoring when non-YCCC operators participate.
 
 **Edge Cases**:
 - **Ties**: Multiple highest single-ops → all get 1,000,000 normalized
