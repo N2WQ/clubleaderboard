@@ -17,7 +17,7 @@ This project is an automated scoring system for the Yankee Clipper Contest Club 
 - **File Processing**: Multer (uploads), PapaParse (CSV parsing)
 
 ### Technical Implementations
-- **Cabrillo Log Processing**: Parses Cabrillo files to extract contest, callsign, claimed score, operators, club, and mode.
+- **Cabrillo Log Processing**: Parses Cabrillo files to extract contest, callsign, claimed score, operators, club, and mode. Enhanced to detect "Yankee Clipper Contest Club" or "YCCC" even when CLUB field contains multiple club names.
 - **Dues Validation & Inclusive Scoring**: Validates operator dues against a roster. Submissions are accepted if at least one operator has valid dues; only operators with current dues are scored. Operators with expired dues are excluded from scoring calculations with a warning.
 - **Scoring Engine**: Implements a normalized scoring formula: `(IndividualClaimed / HighestSingleOpForContestMode) × 1,000,000`. `IndividualClaimed` is `ClaimedScore / TotalOperators`.
 - **Baseline Calculation**: Dynamically computes the highest single-operator claimed score for each contest and mode combination to establish a baseline for normalization.
@@ -29,6 +29,7 @@ This project is an automated scoring system for the Yankee Clipper Contest Club 
 - **Multiple File Upload**: Supports simultaneous upload of multiple Cabrillo log files.
 - **Admin Functionality**: Includes features for syncing the member roster from the YCCC website and clearing all contest data.
 - **Members List**: Clickable Active Members stat card links to /members page showing all eligible members with current dues for the season. Displays callsign, name, dues expiration, and aliases in a sortable table.
+- **Contest Insights**: Homepage displays "Most Competitive Contests" showing top 5 contests by unique operator count (all years) and "Most Active Operators" showing top 5 operators by submission count (all years). APIs: `/api/insights/competitive-contests` and `/api/insights/active-operators`.
 
 ### UI/UX Decisions
 - **Layout**: Clean, minimal design with tabs for different leaderboard views (e.g., "2025 Season", "All-Time", "Historical").
