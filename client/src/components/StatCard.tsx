@@ -6,16 +6,19 @@ interface StatCardProps {
   value: string | number;
   icon?: LucideIcon;
   description?: string;
+  className?: string;
 }
 
-export function StatCard({ title, value, icon: Icon, description }: StatCardProps) {
+export function StatCard({ title, value, icon: Icon, description, className }: StatCardProps) {
+  const displayValue = typeof value === 'number' ? value.toLocaleString() : value;
+  
   return (
-    <Card className="p-6">
+    <Card className={`p-6 ${className || ""}`}>
       <div className="flex items-start justify-between">
         <div className="flex-1">
           <p className="text-sm text-muted-foreground mb-1">{title}</p>
           <p className="text-3xl font-mono font-semibold" data-testid={`stat-${title.toLowerCase().replace(/\s+/g, '-')}`}>
-            {value.toLocaleString()}
+            {displayValue}
           </p>
           {description && (
             <p className="text-xs text-muted-foreground mt-2">{description}</p>

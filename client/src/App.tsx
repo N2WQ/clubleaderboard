@@ -8,6 +8,7 @@ import HomePage from "@/pages/HomePage";
 import UploadPage from "@/pages/UploadPage";
 import MemberDetailPage from "@/pages/MemberDetailPage";
 import ContestDetailPage from "@/pages/ContestDetailPage";
+import ContestsListPage from "@/pages/ContestsListPage";
 import AdminPage from "@/pages/AdminPage";
 import AllSubmissionsPage from "@/pages/AllSubmissionsPage";
 import NotFound from "@/pages/not-found";
@@ -19,6 +20,7 @@ function Router() {
       <Route path="/upload" component={UploadPage} />
       <Route path="/member/:callsign" component={MemberDetailPage} />
       <Route path="/contest/:key" component={ContestDetailPage} />
+      <Route path="/contests" component={ContestsListPage} />
       <Route path="/admin" component={AdminPage} />
       <Route path="/submissions" component={AllSubmissionsPage} />
       <Route component={NotFound} />

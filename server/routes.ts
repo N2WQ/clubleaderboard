@@ -115,6 +115,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/stats", async (req, res) => {
+    try {
+      const seasonYear = parseInt(req.query.year as string) || currentYear;
+      const stats = await storage.getSeasonStats(seasonYear);
+      res.json(stats);
+    } catch (error) {
+      console.error("Stats error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   app.get("/api/leaderboard", async (req, res) => {
     try {
       const type = req.query.type as string || "season";

@@ -31,12 +31,23 @@ export default function HomePage() {
     staleTime: 5 * 60 * 1000,
   });
 
+  const { data: seasonStats } = useQuery({
+    queryKey: ["/api/stats", currentYear],
+    queryFn: async () => {
+      const res = await fetch(`/api/stats?year=${currentYear}`);
+      if (!res.ok) throw new Error("Failed to fetch stats");
+      return res.json();
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
   const leaderboard = activeTab === "season" ? seasonLeaderboard : alltimeLeaderboard;
   const isLoading = activeTab === "season" ? isLoadingSeason : isLoadingAlltime;
 
   const stats = {
-    totalMembers: leaderboard.length || 0,
-    activeContests: leaderboard[0]?.contests || 0,
+    activeMembers: seasonStats?.activeMembers || 0,
+    eligibleMembers: seasonStats?.eligibleMembers || 0,
+    contestsTracked: seasonStats?.contests?.length || 0,
     topScore: leaderboard[0]?.normalizedPoints || 0,
   };
   return (
@@ -63,16 +74,19 @@ export default function HomePage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <StatCard
               title="Active Members"
-              value={stats.totalMembers}
+              value={`${stats.activeMembers}/${stats.eligibleMembers}`}
               icon={Users}
-              description={activeTab === "season" ? "Participants this season" : "All-time participants"}
+              description="Active members / Eligible members with current dues"
             />
-            <StatCard
-              title="Contests Tracked"
-              value={stats.activeContests}
-              icon={Radio}
-              description={activeTab === "season" ? "Completed contests" : "Total contest entries"}
-            />
+            <Link href="/contests">
+              <StatCard
+                title="Contests Tracked"
+                value={stats.contestsTracked}
+                icon={Radio}
+                description="Click to view all contests"
+                className="cursor-pointer hover-elevate active-elevate-2"
+              />
+            </Link>
             <StatCard
               title="Top Normalized Score"
               value={stats.topScore.toLocaleString()}
@@ -118,26 +132,8 @@ export default function HomePage() {
           </TabsContent>
         </Tabs>
 
-        <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="p-6 rounded-lg border border-border">
-            <h4 className="font-semibold mb-2">Season Information</h4>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between py-2 border-b border-border">
-                <span className="font-medium">Current Year</span>
-                <span className="text-muted-foreground">{currentYear}</span>
-              </div>
-              <div className="flex justify-between py-2 border-b border-border">
-                <span className="font-medium">Total Participants</span>
-                <span className="text-muted-foreground">{stats.totalMembers}</span>
-              </div>
-              <div className="flex justify-between py-2">
-                <span className="font-medium">Submissions</span>
-                <span className="text-muted-foreground">{leaderboard.reduce((sum: number, m: any) => sum + (Number(m.contests) || 0), 0)}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="p-6 rounded-lg border border-border">
+        <div className="mt-12">
+          <div className="p-6 rounded-lg border border-border max-w-2xl mx-auto">
             <h4 className="font-semibold mb-2">How It Works</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li className="flex gap-2">

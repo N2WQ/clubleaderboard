@@ -34,6 +34,7 @@ export interface IStorage {
   getMemberContestHistory(callsign: string, seasonYear: number): Promise<any[]>;
   getContestResults(contestKey: string, mode: string, seasonYear: number): Promise<any[]>;
   getAllSubmissions(seasonYear: number, memberCallsign?: string): Promise<any[]>;
+  getSeasonStats(seasonYear: number): Promise<any>;
 
   createRawLog(log: InsertRawLog): Promise<RawLog>;
 
@@ -298,6 +299,53 @@ export class DbStorage implements IStorage {
     await db.delete(schema.rawLogs);
     await db.delete(schema.submissions);
     await db.delete(schema.baselines);
+  }
+
+  async getSeasonStats(seasonYear: number): Promise<any> {
+    const allMembers = await db.select().from(schema.members);
+    
+    const eligibleMembers = allMembers.filter(m => {
+      if (!m.duesExpiration) return false;
+      const parts = m.duesExpiration.split('/');
+      if (parts.length !== 3) return false;
+      const [month, day, expirationYear] = parts.map(p => parseInt(p, 10));
+      if (isNaN(expirationYear) || isNaN(month) || isNaN(day)) return false;
+      const expirationDate = new Date(expirationYear, month - 1, day);
+      const requiredDate = new Date(seasonYear, 11, 31);
+      return expirationDate >= requiredDate;
+    });
+
+    const activeSubmissions = await db.select({
+      memberOperators: schema.submissions.memberOperators,
+    }).from(schema.submissions)
+      .where(and(
+        eq(schema.submissions.seasonYear, seasonYear),
+        eq(schema.submissions.isActive, true),
+        eq(schema.submissions.status, 'accepted')
+      ));
+
+    const activeCallsigns = new Set<string>();
+    activeSubmissions.forEach(sub => {
+      if (sub.memberOperators) {
+        sub.memberOperators.split(',').forEach(op => activeCallsigns.add(op.trim()));
+      }
+    });
+
+    const uniqueContests = await db.selectDistinct({
+      contestKey: schema.submissions.contestKey,
+      mode: schema.submissions.mode,
+    }).from(schema.submissions)
+      .where(and(
+        eq(schema.submissions.seasonYear, seasonYear),
+        eq(schema.submissions.isActive, true)
+      ))
+      .orderBy(schema.submissions.contestKey, schema.submissions.mode);
+
+    return {
+      activeMembers: activeCallsigns.size,
+      eligibleMembers: eligibleMembers.length,
+      contests: uniqueContests,
+    };
   }
 }
 
