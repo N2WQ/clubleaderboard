@@ -23,6 +23,7 @@ export const rawLogs = pgTable("raw_logs", {
 export const submissions = pgTable("submissions", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   seasonYear: integer("season_year").notNull(),
+  contestYear: integer("contest_year").notNull().default(2025),
   contestKey: text("contest_key").notNull(),
   mode: text("mode").notNull(),
   callsign: text("callsign").notNull(),
@@ -60,6 +61,7 @@ export const operatorPoints = pgTable("operator_points", {
 export const insertMemberSchema = createInsertSchema(members);
 export const insertSubmissionSchema = z.object({
   seasonYear: z.number(),
+  contestYear: z.number(),
   contestKey: z.string(),
   mode: z.string(),
   callsign: z.string(),

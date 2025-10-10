@@ -68,6 +68,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const submission = await storage.createSubmission({
         seasonYear: currentYear,
+        contestYear: data.contestYear,
         contestKey: data.contest,
         mode: data.mode,
         callsign: data.callsign,

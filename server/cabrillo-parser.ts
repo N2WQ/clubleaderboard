@@ -10,6 +10,7 @@ export interface CabrilloData {
   mode: string;
   operators: string[];
   club: string;
+  contestYear: number;
 }
 
 export interface ParsedCabrillo {
@@ -57,6 +58,30 @@ function computeScore(lines: string[]): number {
   return score * 2;
 }
 
+function extractContestYear(lines: string[]): number | null {
+  // Find QSO records and extract year from date field
+  // QSO format: QSO: freq mode date time call1 ... call2 ...
+  // Example: QSO:   28009 CW 2024-12-14 0002 WJ1U 599 NH N9NC 599 NH
+  
+  for (const line of lines) {
+    if (line.startsWith('QSO:')) {
+      const parts = line.split(/\s+/).filter(p => p.length > 0);
+      // Find date field (format: YYYY-MM-DD)
+      for (const part of parts) {
+        if (/^\d{4}-\d{2}-\d{2}$/.test(part)) {
+          const year = parseInt(part.substring(0, 4), 10);
+          if (year >= 1900 && year <= 2100) {
+            return year;
+          }
+        }
+      }
+    }
+  }
+  
+  // Fallback to current year if no QSO date found
+  return new Date().getFullYear();
+}
+
 export function parseCabrillo(content: string): ParsedCabrillo {
   const lines = content.split('\n').map(line => line.trim());
   
@@ -72,6 +97,7 @@ export function parseCabrillo(content: string): ParsedCabrillo {
     mode: '',
     operators: [],
     club: '',
+    contestYear: 0,
   };
 
   for (const line of lines) {
@@ -135,6 +161,9 @@ export function parseCabrillo(content: string): ParsedCabrillo {
     data.claimedScore = computeScore(lines);
   }
 
+  // Extract contest year from QSO records
+  const contestYear = extractContestYear(lines);
+
   const normalizedContest = normalizeContestKey(data.contest);
   const extractedMode = extractMode(data.categoryMode || data.mode, data.contest);
 
@@ -152,6 +181,7 @@ export function parseCabrillo(content: string): ParsedCabrillo {
       mode: extractedMode,
       operators: data.operators || [data.callsign!],
       club: data.club || '',
+      contestYear: contestYear || new Date().getFullYear(),
     },
   };
 }
