@@ -33,6 +33,8 @@ This project is an automated scoring system for the Yankee Clipper Contest Club 
 - **Operator Detail Page**: New page at `/operator/:callsign` shows comprehensive operator history. Displays all-time rank, total YCCC points, total contests, and a detailed table of all submissions. API: `/api/operator/:callsign`.
 - **Year Display**: All submission and contest result views display the contest year extracted from QSO dates in the Cabrillo log, not the submission timestamp. This ensures accurate historical tracking.
 - **Interactive Insights**: Operator and entry counts in homepage insight cards are clickable. Clicking operator count in "Most Competitive Contests" navigates to contest detail page; clicking entry count in "Most Active Operators" navigates to operator detail page showing all submissions.
+- **Real-Time Updates**: WebSocket-based live updates automatically refresh the homepage when new logs are uploaded or roster is synced. No manual page refresh required. Server broadcasts "submission:created" and "roster:synced" events to all connected clients.
+- **Automatic Daily Roster Sync**: Scheduler runs roster synchronization from yccc.org immediately on server startup and then every 24 hours. Ensures member roster stays current automatically without manual intervention.
 
 ### UI/UX Decisions
 - **Layout**: Clean, minimal design with tabs for different leaderboard views (e.g., "2025 Season", "All-Time", "Historical").
