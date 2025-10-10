@@ -32,12 +32,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const { data } = parsed;
 
+      const contestYear = data.contestYear;
+      
       const validation = await validateSubmission(
         data.callsign,
         data.operators,
         data.club,
         data.categoryOperator,
-        currentYear
+        contestYear
       );
 
       if (!validation.valid) {
@@ -48,7 +50,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const existingSubmissions = await storage.getActiveSubmissionsByContest(
-        currentYear,
+        contestYear,
         data.contest,
         data.mode
       );
@@ -60,15 +62,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           data.callsign,
           data.contest,
           data.mode,
-          currentYear
+          contestYear
         );
       }
 
       const totalOperators = data.operators.length > 0 ? data.operators.length : 1;
       
       const submission = await storage.createSubmission({
-        seasonYear: currentYear,
-        contestYear: data.contestYear,
+        seasonYear: contestYear,
+        contestYear: contestYear,
         contestKey: data.contest,
         mode: data.mode,
         callsign: data.callsign,
@@ -89,9 +91,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         content: content,
       });
 
-      await recomputeBaseline(currentYear, data.contest, data.mode);
+      await recomputeBaseline(contestYear, data.contest, data.mode);
 
-      const baseline = await storage.getBaseline(currentYear, data.contest, data.mode);
+      const baseline = await storage.getBaseline(contestYear, data.contest, data.mode);
       const memberOps = validation.memberOperators || [data.callsign];
       const individualClaimed = data.claimedScore / totalOperators;
       const normalizedPoints = baseline?.highestSingleClaimed 
@@ -199,13 +201,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/submissions", async (req, res) => {
     try {
-      const seasonYear = parseInt(req.query.year as string) || currentYear;
+      const seasonYear = req.query.year ? parseInt(req.query.year as string) : undefined;
       const memberCallsign = req.query.callsign ? (req.query.callsign as string).toUpperCase() : undefined;
       
       const submissions = await storage.getAllSubmissions(seasonYear, memberCallsign);
       
       res.json({
-        seasonYear,
+        seasonYear: seasonYear || null,
         memberCallsign: memberCallsign || null,
         submissions,
       });

@@ -34,7 +34,7 @@ export interface IStorage {
   getAvailableYears(): Promise<number[]>;
   getMemberContestHistory(callsign: string, seasonYear: number): Promise<any[]>;
   getContestResults(contestKey: string, mode: string, seasonYear: number): Promise<any[]>;
-  getAllSubmissions(seasonYear: number, memberCallsign?: string): Promise<any[]>;
+  getAllSubmissions(seasonYear: number | undefined, memberCallsign?: string): Promise<any[]>;
   getSeasonStats(seasonYear: number): Promise<any>;
 
   createRawLog(log: InsertRawLog): Promise<RawLog>;
@@ -257,12 +257,15 @@ export class DbStorage implements IStorage {
     }));
   }
 
-  async getAllSubmissions(seasonYear: number, memberCallsign?: string): Promise<any[]> {
+  async getAllSubmissions(seasonYear: number | undefined, memberCallsign?: string): Promise<any[]> {
     const conditions = [
-      eq(schema.submissions.seasonYear, seasonYear),
       eq(schema.submissions.isActive, true),
       eq(schema.submissions.status, "accepted")
     ];
+
+    if (seasonYear !== undefined) {
+      conditions.push(eq(schema.submissions.seasonYear, seasonYear));
+    }
 
     if (memberCallsign) {
       conditions.push(eq(schema.operatorPoints.memberCallsign, memberCallsign));

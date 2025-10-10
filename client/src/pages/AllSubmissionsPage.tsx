@@ -15,13 +15,14 @@ import { StatusBadge } from "@/components/StatusBadge";
 export default function AllSubmissionsPage() {
   const searchParams = new URLSearchParams(window.location.search);
   const callsign = searchParams.get('callsign');
-  const currentYear = new Date().getFullYear();
+  const yearParam = searchParams.get('year');
 
   const { data, isLoading } = useQuery({
-    queryKey: ["/api/submissions", callsign],
+    queryKey: ["/api/submissions", callsign, yearParam],
     queryFn: async () => {
-      const params = new URLSearchParams({ year: currentYear.toString() });
+      const params = new URLSearchParams();
       if (callsign) params.append('callsign', callsign);
+      if (yearParam) params.append('year', yearParam);
       const res = await fetch(`/api/submissions?${params}`);
       if (!res.ok) throw new Error("Failed to fetch submissions");
       return res.json();
@@ -29,6 +30,7 @@ export default function AllSubmissionsPage() {
   });
 
   const submissions = data?.submissions || [];
+  const yearDisplay = yearParam ? `${yearParam} season` : 'all years';
 
   return (
     <div className="min-h-screen bg-background">
@@ -51,7 +53,7 @@ export default function AllSubmissionsPage() {
             {callsign ? `Submissions by ${callsign}` : 'All Submissions'}
           </h2>
           <p className="text-muted-foreground">
-            {isLoading ? "Loading..." : `Showing ${submissions.length} submissions for ${currentYear} season`}
+            {isLoading ? "Loading..." : `Showing ${submissions.length} submissions for ${yearDisplay}`}
           </p>
         </div>
 
