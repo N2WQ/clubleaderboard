@@ -42,6 +42,7 @@ export interface IStorage {
 
   createOperatorPoints(points: InsertOperatorPoints): Promise<OperatorPoints>;
   deleteOperatorPointsBySubmission(submissionId: number): Promise<void>;
+  clearAllContestData(): Promise<void>;
 }
 
 export class DbStorage implements IStorage {
@@ -290,6 +291,13 @@ export class DbStorage implements IStorage {
 
   async deleteOperatorPointsBySubmission(submissionId: number): Promise<void> {
     await db.delete(schema.operatorPoints).where(eq(schema.operatorPoints.submissionId, submissionId));
+  }
+
+  async clearAllContestData(): Promise<void> {
+    await db.delete(schema.operatorPoints);
+    await db.delete(schema.rawLogs);
+    await db.delete(schema.submissions);
+    await db.delete(schema.baselines);
   }
 }
 

@@ -84,6 +84,35 @@ export default function AdminPage() {
     },
   });
 
+  const clearDataMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/admin/clear-data", {
+        method: "POST",
+      });
+      
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Clear failed");
+      }
+      
+      return res.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Database Cleared",
+        description: data.message || "All contest data has been cleared. Member roster preserved.",
+      });
+      window.location.reload();
+    },
+    onError: (error: Error) => {
+      toast({
+        variant: "destructive",
+        title: "Clear Failed",
+        description: error.message,
+      });
+    },
+  });
+
   const handleRosterUpload = () => {
     if (rosterFile) {
       uploadRosterMutation.mutate(rosterFile);
@@ -255,8 +284,13 @@ export default function AdminPage() {
                   </p>
                 </div>
 
-                <Button variant="destructive" data-testid="button-reset-season">
-                  Reset Season
+                <Button 
+                  variant="destructive" 
+                  onClick={() => clearDataMutation.mutate()}
+                  disabled={clearDataMutation.isPending}
+                  data-testid="button-reset-season"
+                >
+                  {clearDataMutation.isPending ? "Clearing..." : "Clear All Contest Data"}
                 </Button>
               </div>
             </Card>

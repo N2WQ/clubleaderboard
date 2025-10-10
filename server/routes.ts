@@ -271,6 +271,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/admin/clear-data", async (req, res) => {
+    try {
+      await storage.clearAllContestData();
+      res.json({ 
+        success: true,
+        message: "All contest data has been cleared. Member roster preserved." 
+      });
+    } catch (error) {
+      console.error("Clear data error:", error);
+      res.status(500).json({ error: "Failed to clear contest data" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;
