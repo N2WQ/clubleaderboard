@@ -25,8 +25,7 @@ export default function ContestDetailPage() {
   });
 
   const results = data?.results || [];
-  const baseline = data?.baseline || 0;
-  const participants = results.length;
+  const participants = results.reduce((sum: number, r: any) => sum + (r.effectiveOperators || 0), 0);
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border">
@@ -53,23 +52,13 @@ export default function ContestDetailPage() {
               <ContestBadge contest={contestKey} mode={mode} />
               <h2 className="text-3xl font-bold mt-4 mb-6">Contest Results</h2>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-                <Card className="p-6">
+              <div className="mb-8">
+                <Card className="p-6 max-w-sm">
                   <div className="flex items-center gap-3 mb-2">
                     <Users className="h-5 w-5 text-muted-foreground" />
                     <p className="text-sm text-muted-foreground">Participants</p>
                   </div>
                   <p className="text-xl font-semibold" data-testid="text-participants">{participants}</p>
-                </Card>
-
-                <Card className="p-6">
-                  <div className="flex items-center gap-3 mb-2">
-                    <Radio className="h-5 w-5 text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground">Baseline Score</p>
-                  </div>
-                  <p className="text-xl font-semibold font-mono" data-testid="text-baseline">
-                    {baseline.toLocaleString()}
-                  </p>
                 </Card>
               </div>
             </div>

@@ -28,10 +28,9 @@ export function ContestResultsTable({ results }: ContestResultsTableProps) {
         <TableHeader>
           <TableRow>
             <TableHead>Callsign</TableHead>
-            <TableHead className="text-right">Operators</TableHead>
+            <TableHead className="text-right">Eligible Operators</TableHead>
             <TableHead className="text-right">Claimed Score</TableHead>
-            <TableHead className="text-right">Individual</TableHead>
-            <TableHead className="text-right">Normalized</TableHead>
+            <TableHead className="text-right">Per Operator</TableHead>
             <TableHead>Status</TableHead>
           </TableRow>
         </TableHeader>
@@ -49,9 +48,6 @@ export function ContestResultsTable({ results }: ContestResultsTableProps) {
               </TableCell>
               <TableCell className="text-right font-mono text-muted-foreground">
                 {result.individualClaimed.toLocaleString()}
-              </TableCell>
-              <TableCell className="text-right font-mono font-semibold text-primary">
-                {result.normalizedPoints.toLocaleString()}
               </TableCell>
               <TableCell>
                 <StatusBadge status={result.status} />
