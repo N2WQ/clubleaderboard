@@ -8,39 +8,54 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 
 export default function UploadPage() {
-  const [result, setResult] = useState<any>(null);
+  const [results, setResults] = useState<any[]>([]);
+  const [isProcessing, setIsProcessing] = useState(false);
   const queryClient = useQueryClient();
 
-  const uploadMutation = useMutation({
-    mutationFn: async ({ file, email }: { file: File; email: string }) => {
-      const formData = new FormData();
-      formData.append("file", file);
-      if (email) formData.append("email", email);
-      
-      const res = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
-      
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || "Upload failed");
+  const handleFileSelect = async (files: File[], email: string) => {
+    setIsProcessing(true);
+    setResults([]);
+    
+    const uploadResults: any[] = [];
+    
+    for (const file of files) {
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+        if (email) formData.append("email", email);
+        
+        const res = await fetch("/api/upload", {
+          method: "POST",
+          body: formData,
+        });
+        
+        const data = await res.json();
+        
+        if (!res.ok) {
+          uploadResults.push({
+            filename: file.name,
+            status: "error",
+            error: data.error || "Upload failed"
+          });
+        } else {
+          uploadResults.push({
+            filename: file.name,
+            ...data
+          });
+        }
+      } catch (error: any) {
+        uploadResults.push({
+          filename: file.name,
+          status: "error",
+          error: error.message || "Upload failed"
+        });
       }
-      
-      return res.json();
-    },
-    onSuccess: (data) => {
-      setResult(data);
-      queryClient.invalidateQueries({ queryKey: ["/api/leaderboard"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
-    },
-    onError: (error: Error) => {
-      setResult({ status: "error", error: error.message });
-    },
-  });
-
-  const handleFileSelect = (file: File, email: string) => {
-    uploadMutation.mutate({ file, email });
+    }
+    
+    setResults(uploadResults);
+    setIsProcessing(false);
+    queryClient.invalidateQueries({ queryKey: ["/api/leaderboard"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
   };
 
   return (
@@ -62,48 +77,64 @@ export default function UploadPage() {
 
       <main className="container mx-auto px-4 py-12 max-w-4xl">
         <div className="mb-8">
-          <h2 className="text-3xl font-bold mb-3">Submit Cabrillo Log</h2>
+          <h2 className="text-3xl font-bold mb-3">Submit Cabrillo Logs</h2>
           <p className="text-muted-foreground">
-            Upload your contest log file for automated scoring and validation
+            Upload your contest log files for automated scoring and validation
           </p>
         </div>
 
-        {result?.status === "accepted" && (
-          <>
-            <Alert className="mb-4 border-green-500/20 bg-green-500/10">
-              <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
-              <AlertTitle>Submission Accepted!</AlertTitle>
-              <AlertDescription>
-                <p className="mb-2">
-                  Contest: {result.contest} {result.mode} • Callsign: {result.callsign}
-                </p>
-                <p className="mb-2">
-                  Claimed Score: {result.claimedScore.toLocaleString()} • YCCC Points: {result.normalizedPoints.toLocaleString()}
-                </p>
-                <p className="text-sm">
-                  Operators scoring points: {result.memberOperators.join(", ")}
-                </p>
-              </AlertDescription>
-            </Alert>
-            
-            {result.warning && (
-              <Alert className="mb-8 border-yellow-500/20 bg-yellow-500/10">
-                <AlertTriangle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
-                <AlertTitle>Operator Dues Notice</AlertTitle>
-                <AlertDescription>
-                  {result.warning}
-                </AlertDescription>
-              </Alert>
-            )}
-          </>
+        {isProcessing && (
+          <Alert className="mb-8 border-blue-500/20 bg-blue-500/10">
+            <AlertDescription>
+              Processing files...
+            </AlertDescription>
+          </Alert>
         )}
 
-        {result?.status === "error" && (
-          <Alert className="mb-8 border-red-500/20 bg-red-500/10">
-            <XCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
-            <AlertTitle>Submission Rejected</AlertTitle>
-            <AlertDescription>{result.error}</AlertDescription>
-          </Alert>
+        {results.length > 0 && (
+          <div className="mb-8 space-y-4">
+            {results.map((result, index) => (
+              <div key={index}>
+                {result.status === "accepted" && (
+                  <>
+                    <Alert className="border-green-500/20 bg-green-500/10">
+                      <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+                      <AlertTitle>✓ {result.filename}</AlertTitle>
+                      <AlertDescription>
+                        <p className="mb-2">
+                          Contest: {result.contest} {result.mode} • Callsign: {result.callsign}
+                        </p>
+                        <p className="mb-2">
+                          Claimed Score: {result.claimedScore.toLocaleString()} • YCCC Points: {result.normalizedPoints.toLocaleString()}
+                        </p>
+                        <p className="text-sm">
+                          Operators scoring points: {result.memberOperators.join(", ")}
+                        </p>
+                      </AlertDescription>
+                    </Alert>
+                    
+                    {result.warning && (
+                      <Alert className="mt-2 border-yellow-500/20 bg-yellow-500/10">
+                        <AlertTriangle className="h-4 w-4 text-yellow-600 dark:text-yellow-400" />
+                        <AlertTitle>Operator Dues Notice</AlertTitle>
+                        <AlertDescription>
+                          {result.warning}
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                  </>
+                )}
+
+                {result.status === "error" && (
+                  <Alert className="border-red-500/20 bg-red-500/10">
+                    <XCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+                    <AlertTitle>✗ {result.filename}</AlertTitle>
+                    <AlertDescription>{result.error}</AlertDescription>
+                  </Alert>
+                )}
+              </div>
+            ))}
+          </div>
         )}
 
         <div className="bg-card border border-card-border rounded-lg p-8 mb-8">

@@ -5,11 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 interface FileUploadZoneProps {
-  onFileSelect?: (file: File, email: string) => void;
+  onFileSelect?: (files: File[], email: string) => void;
 }
 
 export function FileUploadZone({ onFileSelect }: FileUploadZoneProps) {
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
   const [email, setEmail] = useState("");
   const [isDragging, setIsDragging] = useState(false);
 
@@ -26,23 +26,29 @@ export function FileUploadZone({ onFileSelect }: FileUploadZoneProps) {
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    const droppedFile = e.dataTransfer.files[0];
-    if (droppedFile && (droppedFile.name.endsWith('.log') || droppedFile.name.endsWith('.cbr'))) {
-      setFile(droppedFile);
+    const droppedFiles = Array.from(e.dataTransfer.files).filter(
+      file => file.name.endsWith('.log') || file.name.endsWith('.cbr')
+    );
+    if (droppedFiles.length > 0) {
+      setFiles(prev => [...prev, ...droppedFiles]);
     }
   }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0];
-    if (selectedFile) {
-      setFile(selectedFile);
+    const selectedFiles = e.target.files;
+    if (selectedFiles && selectedFiles.length > 0) {
+      setFiles(prev => [...prev, ...Array.from(selectedFiles)]);
     }
   };
 
+  const removeFile = (index: number) => {
+    setFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
   const handleSubmit = () => {
-    if (file && onFileSelect) {
-      onFileSelect(file, email);
-      console.log('Submitting file:', file.name, 'Email:', email);
+    if (files.length > 0 && onFileSelect) {
+      onFileSelect(files, email);
+      console.log('Submitting files:', files.map(f => f.name).join(', '), 'Email:', email);
     }
   };
 
@@ -57,47 +63,59 @@ export function FileUploadZone({ onFileSelect }: FileUploadZoneProps) {
           ${isDragging ? 'border-primary bg-primary/5' : 'border-border'}
         `}
       >
-        {file ? (
-          <div className="flex items-center justify-center gap-4">
-            <FileText className="h-8 w-8 text-primary" />
-            <div className="text-left">
-              <p className="font-medium" data-testid="text-filename">{file.name}</p>
-              <p className="text-sm text-muted-foreground">
-                {(file.size / 1024).toFixed(2)} KB
-              </p>
-            </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setFile(null)}
-              data-testid="button-remove-file"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-        ) : (
-          <div>
-            <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-            <p className="text-lg font-medium mb-2">Drop your Cabrillo log here</p>
-            <p className="text-sm text-muted-foreground mb-4">
-              Supports .log and .cbr files
-            </p>
-            <Input
-              type="file"
-              accept=".log,.cbr"
-              onChange={handleFileChange}
-              className="hidden"
-              id="file-upload"
-              data-testid="input-file"
-            />
-            <Button asChild variant="outline">
-              <label htmlFor="file-upload" className="cursor-pointer">
-                Choose File
-              </label>
-            </Button>
-          </div>
-        )}
+        <div>
+          <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+          <p className="text-lg font-medium mb-2">Drop your Cabrillo logs here</p>
+          <p className="text-sm text-muted-foreground mb-4">
+            Supports .log and .cbr files • Multiple files supported
+          </p>
+          <Input
+            type="file"
+            accept=".log,.cbr"
+            multiple
+            onChange={handleFileChange}
+            className="hidden"
+            id="file-upload"
+            data-testid="input-file"
+          />
+          <Button asChild variant="outline">
+            <label htmlFor="file-upload" className="cursor-pointer">
+              Choose Files
+            </label>
+          </Button>
+        </div>
       </div>
+
+      {files.length > 0 && (
+        <div className="space-y-2">
+          <Label>Selected Files ({files.length})</Label>
+          <div className="space-y-2">
+            {files.map((file, index) => (
+              <div
+                key={`${file.name}-${index}`}
+                className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg"
+                data-testid={`file-item-${index}`}
+              >
+                <FileText className="h-5 w-5 text-primary flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium truncate" data-testid={`text-filename-${index}`}>{file.name}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {(file.size / 1024).toFixed(2)} KB
+                  </p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => removeFile(index)}
+                  data-testid={`button-remove-file-${index}`}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="space-y-2">
         <Label htmlFor="email">Email (optional)</Label>
@@ -116,11 +134,11 @@ export function FileUploadZone({ onFileSelect }: FileUploadZoneProps) {
 
       <Button
         onClick={handleSubmit}
-        disabled={!file}
+        disabled={files.length === 0}
         className="w-full"
         data-testid="button-submit-log"
       >
-        Submit Log
+        Submit {files.length > 0 ? `${files.length} Log${files.length > 1 ? 's' : ''}` : 'Logs'}
       </Button>
     </div>
   );
