@@ -143,6 +143,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/available-years", async (req, res) => {
+    try {
+      const years = await storage.getAvailableYears();
+      res.json(years);
+    } catch (error) {
+      console.error("Available years error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   app.get("/api/member/:callsign", async (req, res) => {
     try {
       const callsign = req.params.callsign.toUpperCase();

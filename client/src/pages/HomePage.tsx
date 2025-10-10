@@ -5,17 +5,19 @@ import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState } from "react";
 
 export default function HomePage() {
   const currentYear = new Date().getFullYear();
-  const [activeTab, setActiveTab] = useState("season");
+  const [activeTab, setActiveTab] = useState("current");
+  const [selectedYear, setSelectedYear] = useState<number>(currentYear);
 
-  const { data: seasonLeaderboard = [], isLoading: isLoadingSeason } = useQuery({
+  const { data: currentYearLeaderboard = [], isLoading: isLoadingCurrent } = useQuery({
     queryKey: ["/api/leaderboard", "season", currentYear],
     queryFn: async () => {
       const res = await fetch(`/api/leaderboard?type=season&year=${currentYear}`);
-      if (!res.ok) throw new Error("Failed to fetch season leaderboard");
+      if (!res.ok) throw new Error("Failed to fetch current year leaderboard");
       return res.json();
     },
     staleTime: 5 * 60 * 1000,
@@ -31,6 +33,27 @@ export default function HomePage() {
     staleTime: 5 * 60 * 1000,
   });
 
+  const { data: historicalLeaderboard = [], isLoading: isLoadingHistorical } = useQuery({
+    queryKey: ["/api/leaderboard", "season", selectedYear],
+    queryFn: async () => {
+      const res = await fetch(`/api/leaderboard?type=season&year=${selectedYear}`);
+      if (!res.ok) throw new Error("Failed to fetch historical leaderboard");
+      return res.json();
+    },
+    staleTime: 5 * 60 * 1000,
+    enabled: activeTab === "historical",
+  });
+
+  const { data: availableYears = [] } = useQuery({
+    queryKey: ["/api/available-years"],
+    queryFn: async () => {
+      const res = await fetch(`/api/available-years`);
+      if (!res.ok) throw new Error("Failed to fetch available years");
+      return res.json();
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
   const { data: seasonStats } = useQuery({
     queryKey: ["/api/stats", currentYear],
     queryFn: async () => {
@@ -41,8 +64,15 @@ export default function HomePage() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const leaderboard = activeTab === "season" ? seasonLeaderboard : alltimeLeaderboard;
-  const isLoading = activeTab === "season" ? isLoadingSeason : isLoadingAlltime;
+  const leaderboard = 
+    activeTab === "current" ? currentYearLeaderboard : 
+    activeTab === "alltime" ? alltimeLeaderboard :
+    historicalLeaderboard;
+  
+  const isLoading = 
+    activeTab === "current" ? isLoadingCurrent :
+    activeTab === "alltime" ? isLoadingAlltime :
+    isLoadingHistorical;
 
   const stats = {
     activeMembers: seasonStats?.activeMembers || 0,
@@ -91,20 +121,44 @@ export default function HomePage() {
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="flex items-center justify-between mb-6">
-            <TabsList data-testid="tabs-leaderboard">
-              <TabsTrigger value="season" data-testid="tab-season">
-                {currentYear} Season
-              </TabsTrigger>
-              <TabsTrigger value="alltime" data-testid="tab-alltime">
-                All-Time
-              </TabsTrigger>
-            </TabsList>
+            <div className="flex items-center gap-4">
+              <TabsList data-testid="tabs-leaderboard">
+                <TabsTrigger value="current" data-testid="tab-current">
+                  {currentYear}
+                </TabsTrigger>
+                <TabsTrigger value="alltime" data-testid="tab-alltime">
+                  All-Time
+                </TabsTrigger>
+                <TabsTrigger value="historical" data-testid="tab-historical">
+                  Historical
+                </TabsTrigger>
+              </TabsList>
+              
+              {activeTab === "historical" && (
+                <Select 
+                  value={selectedYear.toString()} 
+                  onValueChange={(value) => setSelectedYear(parseInt(value))}
+                >
+                  <SelectTrigger className="w-32" data-testid="select-year">
+                    <SelectValue placeholder="Select year" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableYears.map((year: number) => (
+                      <SelectItem key={year} value={year.toString()} data-testid={`option-year-${year}`}>
+                        {year}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+            
             <p className="text-sm text-muted-foreground">
               {isLoading ? "Loading..." : `Showing ${leaderboard.length} members by YCCC points`}
             </p>
           </div>
 
-          <TabsContent value="season" data-testid="content-season">
+          <TabsContent value="current" data-testid="content-current">
             {isLoading ? (
               <div className="text-center py-12 text-muted-foreground">Loading leaderboard...</div>
             ) : leaderboard.length === 0 ? (
@@ -119,6 +173,16 @@ export default function HomePage() {
               <div className="text-center py-12 text-muted-foreground">Loading leaderboard...</div>
             ) : leaderboard.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">No submissions yet. Be the first to submit a log!</div>
+            ) : (
+              <ScoreboardTable entries={leaderboard} />
+            )}
+          </TabsContent>
+
+          <TabsContent value="historical" data-testid="content-historical">
+            {isLoading ? (
+              <div className="text-center py-12 text-muted-foreground">Loading leaderboard...</div>
+            ) : leaderboard.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">No submissions for {selectedYear}. Upload logs to populate this year!</div>
             ) : (
               <ScoreboardTable entries={leaderboard} />
             )}

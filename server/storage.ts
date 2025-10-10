@@ -31,6 +31,7 @@ export interface IStorage {
   deactivateSubmission(callsign: string, contestKey: string, mode: string, seasonYear: number): Promise<void>;
   getSeasonLeaderboard(seasonYear: number): Promise<any[]>;
   getAllTimeLeaderboard(): Promise<any[]>;
+  getAvailableYears(): Promise<number[]>;
   getMemberContestHistory(callsign: string, seasonYear: number): Promise<any[]>;
   getContestResults(contestKey: string, mode: string, seasonYear: number): Promise<any[]>;
   getAllSubmissions(seasonYear: number, memberCallsign?: string): Promise<any[]>;
@@ -184,6 +185,15 @@ export class DbStorage implements IStorage {
         claimedScore: row.totalClaimed,
       };
     });
+  }
+
+  async getAvailableYears(): Promise<number[]> {
+    const result = await db
+      .selectDistinct({ year: schema.submissions.contestYear })
+      .from(schema.submissions)
+      .orderBy(desc(schema.submissions.contestYear));
+    
+    return result.map(r => r.year);
   }
 
   async getMemberContestHistory(callsign: string, seasonYear: number): Promise<any[]> {
