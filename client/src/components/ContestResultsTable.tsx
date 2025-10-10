@@ -47,7 +47,7 @@ export function ContestResultsTable({ results }: ContestResultsTableProps) {
                 {result.claimedScore.toLocaleString()}
               </TableCell>
               <TableCell className="text-right font-mono text-muted-foreground">
-                {result.individualClaimed.toLocaleString()}
+                {Math.round(result.individualClaimed).toLocaleString()}
               </TableCell>
               <TableCell>
                 <StatusBadge status={result.status} />

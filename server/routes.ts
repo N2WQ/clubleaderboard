@@ -94,7 +94,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const memberOps = validation.memberOperators || [data.callsign];
       const individualClaimed = data.claimedScore / totalOperators;
       const normalizedPoints = baseline?.highestSingleClaimed 
-        ? Math.round((individualClaimed / baseline.highestSingleClaimed) * 1000000)
+        ? (individualClaimed / baseline.highestSingleClaimed) * 1000000
         : 1000000;
 
       res.json({
@@ -104,7 +104,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         mode: data.mode,
         callsign: data.callsign,
         claimedScore: data.claimedScore,
-        normalizedPoints,
+        normalizedPoints: Math.round(normalizedPoints),
         memberOperators: memberOps,
         excludedOperators: validation.excludedOperators,
         warning: validation.excludedReason,

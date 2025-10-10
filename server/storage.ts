@@ -242,8 +242,8 @@ export class DbStorage implements IStorage {
 
     return results.map(r => ({
       ...r,
-      individualClaimed: r.individualClaimed || (r.claimedScore / (r.totalOperators || 1)),
-      normalizedPoints: r.normalizedPoints || 0,
+      individualClaimed: r.individualClaimed ?? Math.round(r.claimedScore / (r.totalOperators || 1)),
+      normalizedPoints: r.normalizedPoints ?? 0,
     }));
   }
 

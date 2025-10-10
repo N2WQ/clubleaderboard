@@ -127,7 +127,7 @@ export async function computeNormalizedPoints(
   }
 
   const normalizedPoints = (individualClaimed / baseline.highestSingleClaimed) * 1000000;
-  return Math.round(normalizedPoints);
+  return normalizedPoints;
 }
 
 export async function recomputeBaseline(
@@ -169,8 +169,8 @@ export async function recomputeBaseline(
       await storage.createOperatorPoints({
         submissionId: sub.id,
         memberCallsign: memberCall.trim(),
-        individualClaimed,
-        normalizedPoints: Math.round(normalizedPoints),
+        individualClaimed: Math.round(individualClaimed),
+        normalizedPoints,
       });
     }
   }

@@ -52,12 +52,12 @@ export function ScoreboardTable({ entries }: ScoreboardTableProps) {
                 </Link>
               </TableCell>
               <TableCell className="text-right font-mono">
-                {entry.claimedScore.toLocaleString()}
+                {Math.round(entry.claimedScore).toLocaleString()}
               </TableCell>
               <TableCell className="text-right font-mono font-semibold text-primary">
                 <Link href={`/submissions?callsign=${entry.callsign}`}>
                   <button className="hover:underline" data-testid={`link-points-${entry.callsign}`}>
-                    {entry.normalizedPoints.toLocaleString()}
+                    {Math.round(entry.normalizedPoints).toLocaleString()}
                   </button>
                 </Link>
               </TableCell>
