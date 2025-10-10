@@ -1,11 +1,12 @@
 import { ScoreboardTable } from "@/components/ScoreboardTable";
 import { StatCard } from "@/components/StatCard";
-import { Users, Radio, Upload } from "lucide-react";
+import { Users, Radio, Upload, Trophy, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card } from "@/components/ui/card";
 import { useState } from "react";
 
 export default function HomePage() {
@@ -59,6 +60,26 @@ export default function HomePage() {
     queryFn: async () => {
       const res = await fetch(`/api/stats?year=${currentYear}`);
       if (!res.ok) throw new Error("Failed to fetch stats");
+      return res.json();
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const { data: competitiveContests = [] } = useQuery({
+    queryKey: ["/api/insights/competitive-contests"],
+    queryFn: async () => {
+      const res = await fetch(`/api/insights/competitive-contests?limit=5`);
+      if (!res.ok) throw new Error("Failed to fetch competitive contests");
+      return res.json();
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const { data: activeOperators = [] } = useQuery({
+    queryKey: ["/api/insights/active-operators"],
+    queryFn: async () => {
+      const res = await fetch(`/api/insights/active-operators?limit=5`);
+      if (!res.ok) throw new Error("Failed to fetch active operators");
       return res.json();
     },
     staleTime: 5 * 60 * 1000,
@@ -119,6 +140,61 @@ export default function HomePage() {
                 className="cursor-pointer hover-elevate active-elevate-2"
               />
             </Link>
+          </div>
+        </div>
+
+        <div className="mb-12">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Card className="p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <Trophy className="h-5 w-5 text-primary" />
+                <h3 className="text-lg font-semibold">Most Competitive Contests</h3>
+              </div>
+              <p className="text-sm text-muted-foreground mb-4">Top contests by participating operators (all years)</p>
+              <div className="space-y-3">
+                {competitiveContests.slice(0, 5).map((contest: any, index: number) => (
+                  <div key={`${contest.contestKey}-${contest.mode}`} className="flex items-center justify-between" data-testid={`competitive-contest-${index}`}>
+                    <div className="flex items-center gap-3">
+                      <span className="text-muted-foreground text-sm w-6">#{index + 1}</span>
+                      <div>
+                        <span className="font-mono font-semibold text-sm">{contest.contestKey}</span>
+                        <span className="text-muted-foreground text-xs ml-2">{contest.mode}</span>
+                      </div>
+                    </div>
+                    <span className="text-sm font-semibold text-primary" data-testid={`operator-count-${index}`}>
+                      {contest.operatorCount} operators
+                    </span>
+                  </div>
+                ))}
+                {competitiveContests.length === 0 && (
+                  <p className="text-sm text-muted-foreground text-center py-4">No data yet</p>
+                )}
+              </div>
+            </Card>
+
+            <Card className="p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <Target className="h-5 w-5 text-primary" />
+                <h3 className="text-lg font-semibold">Most Active Operators</h3>
+              </div>
+              <p className="text-sm text-muted-foreground mb-4">Top operators by contest entries (all years)</p>
+              <div className="space-y-3">
+                {activeOperators.slice(0, 5).map((operator: any, index: number) => (
+                  <div key={operator.callsign} className="flex items-center justify-between" data-testid={`active-operator-${index}`}>
+                    <div className="flex items-center gap-3">
+                      <span className="text-muted-foreground text-sm w-6">#{index + 1}</span>
+                      <span className="font-mono font-semibold text-sm">{operator.callsign}</span>
+                    </div>
+                    <span className="text-sm font-semibold text-primary" data-testid={`entry-count-${index}`}>
+                      {operator.entryCount} entries
+                    </span>
+                  </div>
+                ))}
+                {activeOperators.length === 0 && (
+                  <p className="text-sm text-muted-foreground text-center py-4">No data yet</p>
+                )}
+              </div>
+            </Card>
           </div>
         </div>
 

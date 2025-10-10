@@ -37,6 +37,8 @@ export interface IStorage {
   getContestResults(contestKey: string, mode: string, seasonYear: number): Promise<any[]>;
   getAllSubmissions(seasonYear: number | undefined, memberCallsign?: string): Promise<any[]>;
   getSeasonStats(seasonYear: number): Promise<any>;
+  getMostCompetitiveContests(limit: number): Promise<any[]>;
+  getMostActiveOperators(limit: number): Promise<any[]>;
 
   createRawLog(log: InsertRawLog): Promise<RawLog>;
 
@@ -391,6 +393,58 @@ export class DbStorage implements IStorage {
       eligibleMembers: eligibleMembers.length,
       contests: uniqueContests,
     };
+  }
+
+  async getMostCompetitiveContests(limit: number): Promise<any[]> {
+    // Get contests with most unique operators across all years
+    const results = await db
+      .select({
+        contestKey: schema.submissions.contestKey,
+        mode: schema.submissions.mode,
+        operatorCount: sql<number>`COUNT(DISTINCT ${schema.operatorPoints.memberCallsign})`.as('operator_count'),
+      })
+      .from(schema.submissions)
+      .innerJoin(schema.operatorPoints, eq(schema.submissions.id, schema.operatorPoints.submissionId))
+      .where(
+        and(
+          eq(schema.submissions.isActive, true),
+          eq(schema.submissions.status, 'accepted')
+        )
+      )
+      .groupBy(schema.submissions.contestKey, schema.submissions.mode)
+      .orderBy(desc(sql`operator_count`))
+      .limit(limit);
+
+    return results.map(r => ({
+      contestKey: r.contestKey,
+      mode: r.mode,
+      operatorCount: r.operatorCount,
+    }));
+  }
+
+  async getMostActiveOperators(limit: number): Promise<any[]> {
+    // Get operators with most submissions across all years
+    const results = await db
+      .select({
+        callsign: schema.operatorPoints.memberCallsign,
+        entryCount: sql<number>`COUNT(DISTINCT ${schema.operatorPoints.submissionId})`.as('entry_count'),
+      })
+      .from(schema.operatorPoints)
+      .innerJoin(schema.submissions, eq(schema.operatorPoints.submissionId, schema.submissions.id))
+      .where(
+        and(
+          eq(schema.submissions.isActive, true),
+          eq(schema.submissions.status, 'accepted')
+        )
+      )
+      .groupBy(schema.operatorPoints.memberCallsign)
+      .orderBy(desc(sql`entry_count`))
+      .limit(limit);
+
+    return results.map(r => ({
+      callsign: r.callsign,
+      entryCount: r.entryCount,
+    }));
   }
 }
 

@@ -138,7 +138,13 @@ export function parseCabrillo(content: string): ParsedCabrillo {
         data.operators = parseOperators(value);
         break;
       case 'CLUB':
-        data.club = value;
+        // Handle multiple clubs - check if YCCC is mentioned
+        const clubUpper = value.toUpperCase();
+        if (clubUpper.includes('YANKEE CLIPPER CONTEST CLUB') || clubUpper.includes('YCCC')) {
+          data.club = 'Yankee Clipper Contest Club';
+        } else {
+          data.club = value;
+        }
         break;
     }
   }

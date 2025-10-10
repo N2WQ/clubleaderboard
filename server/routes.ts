@@ -170,6 +170,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/insights/competitive-contests", async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 5;
+      const contests = await storage.getMostCompetitiveContests(limit);
+      res.json(contests);
+    } catch (error) {
+      console.error("Competitive contests error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.get("/api/insights/active-operators", async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 5;
+      const operators = await storage.getMostActiveOperators(limit);
+      res.json(operators);
+    } catch (error) {
+      console.error("Active operators error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   app.get("/api/member/:callsign", async (req, res) => {
     try {
       const callsign = req.params.callsign.toUpperCase();
