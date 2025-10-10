@@ -208,15 +208,16 @@ export class DbStorage implements IStorage {
   }
 
   async getContestResults(contestKey: string, mode: string, seasonYear: number): Promise<any[]> {
-    return db
+    const results = await db
       .select({
         callsign: schema.submissions.callsign,
         claimedScore: schema.submissions.claimedScore,
+        totalOperators: schema.submissions.totalOperators,
         effectiveOperators: schema.submissions.effectiveOperators,
         status: schema.submissions.status,
         submittedAt: schema.submissions.submittedAt,
-        individualClaimed: schema.operatorPoints.individualClaimed,
-        normalizedPoints: schema.operatorPoints.normalizedPoints,
+        individualClaimed: sql<number>`MAX(${schema.operatorPoints.individualClaimed})`.as('individualClaimed'),
+        normalizedPoints: sql<number>`MAX(${schema.operatorPoints.normalizedPoints})`.as('normalizedPoints'),
       })
       .from(schema.submissions)
       .leftJoin(schema.operatorPoints, eq(schema.submissions.id, schema.operatorPoints.submissionId))
@@ -228,7 +229,22 @@ export class DbStorage implements IStorage {
           eq(schema.submissions.isActive, true)
         )
       )
+      .groupBy(
+        schema.submissions.id,
+        schema.submissions.callsign,
+        schema.submissions.claimedScore,
+        schema.submissions.totalOperators,
+        schema.submissions.effectiveOperators,
+        schema.submissions.status,
+        schema.submissions.submittedAt
+      )
       .orderBy(desc(schema.submissions.claimedScore));
+
+    return results.map(r => ({
+      ...r,
+      individualClaimed: r.individualClaimed || (r.claimedScore / (r.totalOperators || 1)),
+      normalizedPoints: r.normalizedPoints || 0,
+    }));
   }
 
   async getAllSubmissions(seasonYear: number, memberCallsign?: string): Promise<any[]> {
