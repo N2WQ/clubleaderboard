@@ -254,6 +254,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/operator/:callsign", async (req, res) => {
+    try {
+      const callsign = req.params.callsign.toUpperCase();
+      const member = await storage.getMember(callsign);
+      const submissions = await storage.getAllSubmissions(undefined, callsign);
+      const alltimeLeaderboard = await storage.getAllTimeLeaderboard();
+      const operatorData = alltimeLeaderboard.find(m => m.callsign === callsign);
+
+      res.json({
+        callsign,
+        member,
+        totalPoints: operatorData?.normalizedPoints || 0,
+        rank: operatorData?.rank || 0,
+        totalContests: operatorData?.contests || 0,
+        submissions,
+      });
+    } catch (error) {
+      console.error("Operator detail error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   app.post("/api/admin/roster", upload.single("file"), async (req, res) => {
     try {
       if (!req.file) {

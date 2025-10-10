@@ -12,6 +12,7 @@ import ContestsListPage from "@/pages/ContestsListPage";
 import AdminPage from "@/pages/AdminPage";
 import AllSubmissionsPage from "@/pages/AllSubmissionsPage";
 import MembersListPage from "@/pages/MembersListPage";
+import OperatorDetailPage from "@/pages/OperatorDetailPage";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -20,6 +21,7 @@ function Router() {
       <Route path="/" component={HomePage} />
       <Route path="/upload" component={UploadPage} />
       <Route path="/member/:callsign" component={MemberDetailPage} />
+      <Route path="/operator/:callsign" component={OperatorDetailPage} />
       <Route path="/contest/:key" component={ContestDetailPage} />
       <Route path="/contests" component={ContestsListPage} />
       <Route path="/admin" component={AdminPage} />

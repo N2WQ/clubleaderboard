@@ -150,9 +150,11 @@ export default function HomePage() {
                         <span className="text-muted-foreground w-5">#{index + 1}</span>
                         <span className="font-mono font-semibold">{operator.callsign}</span>
                       </div>
-                      <span className="text-muted-foreground" data-testid={`entry-count-${index}`}>
-                        {operator.entryCount} entries
-                      </span>
+                      <Link href={`/operator/${operator.callsign}`}>
+                        <span className="text-primary hover:underline cursor-pointer" data-testid={`entry-count-${index}`}>
+                          {operator.entryCount} entries
+                        </span>
+                      </Link>
                     </div>
                   ))}
                   {activeOperators.length === 0 && (
@@ -193,9 +195,11 @@ export default function HomePage() {
                           <span className="text-muted-foreground text-xs ml-1">{contest.mode}</span>
                         </div>
                       </div>
-                      <span className="text-muted-foreground" data-testid={`operator-count-${index}`}>
-                        {contest.operatorCount} ops
-                      </span>
+                      <Link href={`/contest/${contest.contestKey}?mode=${contest.mode}`}>
+                        <span className="text-primary hover:underline cursor-pointer" data-testid={`operator-count-${index}`}>
+                          {contest.operatorCount} ops
+                        </span>
+                      </Link>
                     </div>
                   ))}
                   {competitiveContests.length === 0 && (
