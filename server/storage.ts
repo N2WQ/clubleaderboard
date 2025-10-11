@@ -489,17 +489,18 @@ export class DbStorage implements IStorage {
   }
 
   async getMostRecentLogs(limit: number): Promise<any[]> {
-    // Get the most recent accepted submissions regardless of year
+    // Get the most recent accepted submissions with member operators regardless of year
     const results = await db
       .select({
-        id: schema.submissions.id,
-        callsign: schema.submissions.callsign,
+        id: schema.operatorPoints.id,
+        submissionId: schema.operatorPoints.submissionId,
+        memberCallsign: schema.operatorPoints.memberCallsign,
         contestKey: schema.submissions.contestKey,
         seasonYear: schema.submissions.seasonYear,
-        claimedScore: schema.submissions.claimedScore,
         submittedAt: schema.submissions.submittedAt,
       })
-      .from(schema.submissions)
+      .from(schema.operatorPoints)
+      .innerJoin(schema.submissions, eq(schema.operatorPoints.submissionId, schema.submissions.id))
       .where(
         and(
           eq(schema.submissions.isActive, true),
@@ -511,10 +512,10 @@ export class DbStorage implements IStorage {
 
     return results.map(r => ({
       id: r.id,
-      callsign: r.callsign,
+      submissionId: r.submissionId,
+      callsign: r.memberCallsign,
       contestKey: r.contestKey,
       seasonYear: r.seasonYear,
-      claimedScore: r.claimedScore,
       submittedAt: r.submittedAt,
     }));
   }
