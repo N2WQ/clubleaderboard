@@ -17,14 +17,15 @@ This project is an automated scoring system for the Yankee Clipper Contest Club 
 - **File Processing**: Multer (uploads), PapaParse (CSV parsing)
 
 ### Technical Implementations
-- **Cabrillo Log Processing**: Parses Cabrillo files to extract contest, callsign, claimed score, operators, club, and mode. Enhanced to detect "Yankee Clipper Contest Club" or "YCCC" even when CLUB field contains multiple club names.
+- **Cabrillo Log Processing**: Parses Cabrillo files to extract contest, callsign, claimed score, operators, club, and mode. Enhanced to detect "Yankee Clipper Contest Club" or "YCCC" even when CLUB field contains multiple club names. The CONTEST field becomes the unique contest identifier (contestKey).
+- **Contest Identification**: Contests are uniquely identified by the CONTEST field from Cabrillo logs (stored as contestKey). MODE is captured separately for display purposes only and is not used for contest identification or scoring calculations.
 - **Dues Validation & Inclusive Scoring**: Validates operator dues against a roster. Submissions are accepted if at least one operator has valid dues; only operators with current dues are scored. Operators with expired dues are excluded from scoring calculations with a warning.
 - **Configurable Scoring System**: Administrators can choose between two scoring methods via the Admin panel:
-  - **Fixed Method** (default): Uses a fixed maximum of 1,000,000 points for all contests. Formula: `(IndividualClaimed / HighestSingleOpForContestMode) × 1,000,000`
-  - **Participant-Based Method**: Dynamic maximum based on unique member operators. Formula: `(IndividualClaimed / HighestSingleOpForContestMode) × min(uniqueOperators × 50,000, 1,000,000)`. Counts all unique member operators across all accepted submissions for each contest/mode/year. Maximum cap of 1,000,000 points (20 participants).
+  - **Fixed Method** (default): Uses a fixed maximum of 1,000,000 points for all contests. Formula: `(IndividualClaimed / HighestSingleOpForContest) × 1,000,000`
+  - **Participant-Based Method**: Dynamic maximum based on unique member operators. Formula: `(IndividualClaimed / HighestSingleOpForContest) × min(uniqueOperators × 50,000, 1,000,000)`. Counts all unique member operators across all accepted submissions for each contest/year. Maximum cap of 1,000,000 points (20 participants).
 - **Scoring Engine**: Implements normalized scoring using the selected method. `IndividualClaimed` is `ClaimedScore / TotalOperators`. All points are rounded to whole numbers.
-- **Baseline Calculation**: Dynamically computes the highest single-operator claimed score for each contest and mode combination to establish a baseline for normalization.
-- **Duplicate Submission Handling**: Ensures that only the latest submission for a given callsign, contest, mode, and year is active, deactivating previous submissions.
+- **Baseline Calculation**: Dynamically computes the highest single-operator claimed score for each contest (identified by contestKey) to establish a baseline for normalization. Baselines are stored by (seasonYear, contestKey) only.
+- **Duplicate Submission Handling**: Ensures that only the latest submission for a given callsign, contest, and year is active, deactivating previous submissions. Deactivation targets (callsign, contestKey, year) regardless of MODE.
 - **Dynamic Contest Year Parsing**: Extracts the contest year directly from QSO record dates in Cabrillo logs, allowing for historical data analysis and year-specific leaderboards.
 - **Dense Ranking**: Leaderboards utilize dense ranking (e.g., 1,1,1,2) for ties.
 - **Points Rounding**: Both individual claimed points and YCCC Points (normalized points) are rounded to whole numbers for storage and display.
@@ -47,9 +48,9 @@ This project is an automated scoring system for the Yankee Clipper Contest Club 
 
 ### Database Schema
 - **members**: Stores callsign, active status, aliases, names, and dues expiration.
-- **submissions**: Records contest metadata, claimed scores, operator lists, and status.
+- **submissions**: Records contest metadata, claimed scores, operator lists, MODE (for display), and status.
 - **raw_logs**: Stores the original Cabrillo file content.
-- **baselines**: Stores the highest single-claimed score for each contest/mode/year.
+- **baselines**: Stores the highest single-claimed score for each contest/year. Unique key: (seasonYear, contestKey). MODE is not used in baseline calculations.
 - **operator_points**: Stores individual and normalized points for each scored member operator.
 - **scoring_config**: Stores key-value configuration for scoring method ('fixed' or 'participant-based') with update timestamps.
 
