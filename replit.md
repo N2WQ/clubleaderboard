@@ -19,7 +19,10 @@ This project is an automated scoring system for the Yankee Clipper Contest Club 
 ### Technical Implementations
 - **Cabrillo Log Processing**: Parses Cabrillo files to extract contest, callsign, claimed score, operators, club, and mode. Enhanced to detect "Yankee Clipper Contest Club" or "YCCC" even when CLUB field contains multiple club names.
 - **Dues Validation & Inclusive Scoring**: Validates operator dues against a roster. Submissions are accepted if at least one operator has valid dues; only operators with current dues are scored. Operators with expired dues are excluded from scoring calculations with a warning.
-- **Scoring Engine**: Implements a normalized scoring formula: `(IndividualClaimed / HighestSingleOpForContestMode) × 1,000,000`. `IndividualClaimed` is `ClaimedScore / TotalOperators`.
+- **Configurable Scoring System**: Administrators can choose between two scoring methods via the Admin panel:
+  - **Fixed Method** (default): Uses a fixed maximum of 1,000,000 points for all contests. Formula: `(IndividualClaimed / HighestSingleOpForContestMode) × 1,000,000`
+  - **Participant-Based Method**: Dynamic maximum based on unique member operators. Formula: `(IndividualClaimed / HighestSingleOpForContestMode) × min(uniqueOperators × 50,000, 1,000,000)`. Counts all unique member operators across all accepted submissions for each contest/mode/year. Maximum cap of 1,000,000 points (20 participants).
+- **Scoring Engine**: Implements normalized scoring using the selected method. `IndividualClaimed` is `ClaimedScore / TotalOperators`. All points are rounded to whole numbers.
 - **Baseline Calculation**: Dynamically computes the highest single-operator claimed score for each contest and mode combination to establish a baseline for normalization.
 - **Duplicate Submission Handling**: Ensures that only the latest submission for a given callsign, contest, mode, and year is active, deactivating previous submissions.
 - **Dynamic Contest Year Parsing**: Extracts the contest year directly from QSO record dates in Cabrillo logs, allowing for historical data analysis and year-specific leaderboards.
@@ -48,6 +51,7 @@ This project is an automated scoring system for the Yankee Clipper Contest Club 
 - **raw_logs**: Stores the original Cabrillo file content.
 - **baselines**: Stores the highest single-claimed score for each contest/mode/year.
 - **operator_points**: Stores individual and normalized points for each scored member operator.
+- **scoring_config**: Stores key-value configuration for scoring method ('fixed' or 'participant-based') with update timestamps.
 
 ## External Dependencies
 - **PostgreSQL (Neon)**: Primary database for all application data.
