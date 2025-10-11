@@ -458,8 +458,8 @@ export class DbStorage implements IStorage {
     const results = await db
       .select({
         callsign: schema.operatorPoints.memberCallsign,
-        totalScore: sql<number>`ROUND(SUM(${schema.operatorPoints.normalizedPoints}))`.as('total_score'),
-        entryCount: sql<number>`COUNT(DISTINCT ${schema.operatorPoints.submissionId})`.as('entry_count'),
+        totalScore: sql<number>`CAST(ROUND(SUM(${schema.operatorPoints.normalizedPoints})) AS INTEGER)`.as('total_score'),
+        entryCount: sql<number>`CAST(COUNT(DISTINCT ${schema.operatorPoints.submissionId}) AS INTEGER)`.as('entry_count'),
       })
       .from(schema.operatorPoints)
       .innerJoin(schema.submissions, eq(schema.operatorPoints.submissionId, schema.submissions.id))
@@ -474,15 +474,15 @@ export class DbStorage implements IStorage {
       .limit(100); // Get more than needed to handle ties
 
     // Find the entry count of the 5th place (or last if fewer than 5)
-    const fifthPlaceCount = results[Math.min(limit - 1, results.length - 1)]?.entryCount || 0;
+    const fifthPlaceCount = Number(results[Math.min(limit - 1, results.length - 1)]?.entryCount) || 0;
     
     // Include all operators with entry counts >= 5th place count
-    const filtered = results.filter(r => r.entryCount >= fifthPlaceCount);
+    const filtered = results.filter(r => Number(r.entryCount) >= fifthPlaceCount);
 
     return filtered.map(r => ({
       callsign: r.callsign,
-      totalScore: r.totalScore,
-      entryCount: r.entryCount,
+      totalScore: Number(r.totalScore),
+      entryCount: Number(r.entryCount),
     }));
   }
 
