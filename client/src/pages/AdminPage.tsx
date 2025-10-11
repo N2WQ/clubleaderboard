@@ -168,7 +168,7 @@ export default function AdminPage() {
   };
 
   const stats = {
-    totalSubmissions: leaderboard.reduce((sum: number, m: any) => sum + (m.contests || 0), 0),
+    totalSubmissions: leaderboard.reduce((sum: number, m: any) => sum + Number(m.contests || 0), 0),
     accepted: leaderboard.length,
     rejected: 0,
     processing: 0,
