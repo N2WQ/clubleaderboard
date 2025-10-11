@@ -158,15 +158,15 @@ export default function HomePage() {
                   <h4 className="text-sm font-semibold">Most Active Operators</h4>
                 </div>
                 <div className="space-y-2">
-                  {activeOperators.slice(0, 5).map((operator: any, index: number) => (
+                  {activeOperators.map((operator: any, index: number) => (
                     <div key={operator.callsign} className="flex items-center justify-between text-sm" data-testid={`active-operator-${index}`}>
                       <div className="flex items-center gap-2">
                         <span className="text-muted-foreground w-5">#{index + 1}</span>
                         <span className="font-mono font-semibold">{operator.callsign}</span>
                       </div>
                       <Link href={`/operator/${operator.callsign}`}>
-                        <span className="text-primary hover:underline cursor-pointer" data-testid={`entry-count-${index}`}>
-                          {operator.entryCount} entries
+                        <span className="text-primary hover:underline cursor-pointer" data-testid={`total-score-${index}`}>
+                          {operator.totalScore?.toLocaleString()} pts
                         </span>
                       </Link>
                     </div>
@@ -200,18 +200,15 @@ export default function HomePage() {
                   <h4 className="text-sm font-semibold">Most Competitive Contests</h4>
                 </div>
                 <div className="space-y-2">
-                  {competitiveContests.slice(0, 5).map((contest: any, index: number) => (
-                    <div key={`${contest.contestKey}-${contest.mode}`} className="flex items-center justify-between text-sm" data-testid={`competitive-contest-${index}`}>
+                  {competitiveContests.map((contest: any, index: number) => (
+                    <div key={contest.contestKey} className="flex items-center justify-between text-sm" data-testid={`competitive-contest-${index}`}>
                       <div className="flex items-center gap-2">
                         <span className="text-muted-foreground w-5">#{index + 1}</span>
-                        <div>
-                          <span className="font-mono font-semibold">{contest.contestKey}</span>
-                          <span className="text-muted-foreground text-xs ml-1">{contest.mode}</span>
-                        </div>
+                        <span className="font-mono font-semibold">{contest.contestKey}</span>
                       </div>
-                      <Link href={`/contest/${contest.contestKey}?mode=${contest.mode}`}>
-                        <span className="text-primary hover:underline cursor-pointer" data-testid={`operator-count-${index}`}>
-                          {contest.operatorCount} ops
+                      <Link href={`/contest/${contest.contestKey}`}>
+                        <span className="text-primary hover:underline cursor-pointer" data-testid={`submission-count-${index}`}>
+                          {contest.submissionCount} logs
                         </span>
                       </Link>
                     </div>

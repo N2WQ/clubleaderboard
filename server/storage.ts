@@ -53,7 +53,7 @@ export interface IStorage {
 
   getScoringConfig(key: string): Promise<ScoringConfig | undefined>;
   setScoringConfig(config: InsertScoringConfig): Promise<void>;
-  getAllUniqueContests(): Promise<Array<{ contestYear: number; contestKey: string }>>;
+  getAllUniqueContests(): Promise<Array<{ contestYear: number; contestKey: string; submissionCount: number }>>;
 }
 
 export class DbStorage implements IStorage {
@@ -402,10 +402,12 @@ export class DbStorage implements IStorage {
   }
 
   async getMostCompetitiveContests(limit: number): Promise<any[]> {
-    // Get contests with most unique operators across all years
+    // Get contests with most submissions across all years
+    // Include all contests that tie with the 5th highest submission count
     const results = await db
       .select({
         contestKey: schema.submissions.contestKey,
+        submissionCount: sql<number>`COUNT(DISTINCT ${schema.submissions.id})`.as('submission_count'),
         operatorCount: sql<number>`COUNT(DISTINCT ${schema.operatorPoints.memberCallsign})`.as('operator_count'),
       })
       .from(schema.submissions)
@@ -417,20 +419,29 @@ export class DbStorage implements IStorage {
         )
       )
       .groupBy(schema.submissions.contestKey)
-      .orderBy(desc(sql`operator_count`))
-      .limit(limit);
+      .orderBy(desc(sql`submission_count`))
+      .limit(100); // Get more than needed to handle ties
 
-    return results.map(r => ({
+    // Find the submission count of the 5th place (or last if fewer than 5)
+    const fifthPlaceCount = results[Math.min(limit - 1, results.length - 1)]?.submissionCount || 0;
+    
+    // Include all contests with submission counts >= 5th place count
+    const filtered = results.filter(r => r.submissionCount >= fifthPlaceCount);
+
+    return filtered.map(r => ({
       contestKey: r.contestKey,
+      submissionCount: r.submissionCount,
       operatorCount: r.operatorCount,
     }));
   }
 
   async getMostActiveOperators(limit: number): Promise<any[]> {
-    // Get operators with most submissions across all years
+    // Get operators with highest total scores across all years
+    // Include all operators that tie with the 5th highest score
     const results = await db
       .select({
         callsign: schema.operatorPoints.memberCallsign,
+        totalScore: sql<number>`ROUND(SUM(${schema.operatorPoints.normalizedPoints}))`.as('total_score'),
         entryCount: sql<number>`COUNT(DISTINCT ${schema.operatorPoints.submissionId})`.as('entry_count'),
       })
       .from(schema.operatorPoints)
@@ -442,11 +453,18 @@ export class DbStorage implements IStorage {
         )
       )
       .groupBy(schema.operatorPoints.memberCallsign)
-      .orderBy(desc(sql`entry_count`))
-      .limit(limit);
+      .orderBy(desc(sql`total_score`))
+      .limit(100); // Get more than needed to handle ties
 
-    return results.map(r => ({
+    // Find the score of the 5th place (or last if fewer than 5)
+    const fifthPlaceScore = results[Math.min(limit - 1, results.length - 1)]?.totalScore || 0;
+    
+    // Include all operators with scores >= 5th place score
+    const filtered = results.filter(r => r.totalScore >= fifthPlaceScore);
+
+    return filtered.map(r => ({
       callsign: r.callsign,
+      totalScore: r.totalScore,
       entryCount: r.entryCount,
     }));
   }
@@ -466,14 +484,16 @@ export class DbStorage implements IStorage {
     });
   }
 
-  async getAllUniqueContests(): Promise<Array<{ contestYear: number; contestKey: string }>> {
+  async getAllUniqueContests(): Promise<Array<{ contestYear: number; contestKey: string; submissionCount: number }>> {
     const results = await db
-      .selectDistinct({
+      .select({
         contestYear: schema.submissions.contestYear,
         contestKey: schema.submissions.contestKey,
+        submissionCount: sql<number>`COUNT(DISTINCT ${schema.submissions.id})`.as('submission_count'),
       })
       .from(schema.submissions)
       .where(eq(schema.submissions.isActive, true))
+      .groupBy(schema.submissions.contestYear, schema.submissions.contestKey)
       .orderBy(
         desc(schema.submissions.contestYear),
         schema.submissions.contestKey
