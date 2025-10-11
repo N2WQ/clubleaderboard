@@ -411,19 +411,22 @@ export class DbStorage implements IStorage {
     };
   }
 
-  async getMostCompetitiveContests(limit: number): Promise<any[]> {
-    // Get contests with most submissions across all years
+  async getMostCompetitiveContests(limit: number, seasonYear?: number): Promise<any[]> {
+    // Get contests with most submissions for the current season (or all years if not specified)
     // Include all contests that tie with the 5th highest submission count
+    const currentYear = seasonYear || new Date().getFullYear();
+    
     const results = await db
       .select({
         contestKey: schema.submissions.contestKey,
-        submissionCount: sql<number>`COUNT(DISTINCT ${schema.submissions.id})`.as('submission_count'),
-        operatorCount: sql<number>`COUNT(DISTINCT ${schema.operatorPoints.memberCallsign})`.as('operator_count'),
+        submissionCount: sql<number>`CAST(COUNT(DISTINCT ${schema.submissions.id}) AS INTEGER)`.as('submission_count'),
+        operatorCount: sql<number>`CAST(COUNT(DISTINCT ${schema.operatorPoints.memberCallsign}) AS INTEGER)`.as('operator_count'),
       })
       .from(schema.submissions)
       .innerJoin(schema.operatorPoints, eq(schema.submissions.id, schema.operatorPoints.submissionId))
       .where(
         and(
+          eq(schema.submissions.seasonYear, currentYear),
           eq(schema.submissions.isActive, true),
           eq(schema.submissions.status, 'accepted')
         )
@@ -433,25 +436,26 @@ export class DbStorage implements IStorage {
       .limit(100); // Get more than needed to handle ties
 
     // Find the submission count of the 5th place (or last if fewer than 5)
-    const fifthPlaceCount = results[Math.min(limit - 1, results.length - 1)]?.submissionCount || 0;
+    const fifthPlaceCount = Number(results[Math.min(limit - 1, results.length - 1)]?.submissionCount) || 0;
     
     // Include all contests with submission counts >= 5th place count
-    const filtered = results.filter(r => r.submissionCount >= fifthPlaceCount);
+    const filtered = results.filter(r => Number(r.submissionCount) >= fifthPlaceCount);
 
     // Add dense ranking
     let currentRank = 0;
     let lastCount = -1;
     
     return filtered.map(r => {
-      if (r.submissionCount !== lastCount) {
+      const count = Number(r.submissionCount);
+      if (count !== lastCount) {
         currentRank++;
-        lastCount = r.submissionCount;
+        lastCount = count;
       }
       return {
         rank: currentRank,
         contestKey: r.contestKey,
-        submissionCount: r.submissionCount,
-        operatorCount: r.operatorCount,
+        submissionCount: count,
+        operatorCount: Number(r.operatorCount),
       };
     });
   }

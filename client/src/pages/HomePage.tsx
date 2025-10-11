@@ -80,9 +80,9 @@ export default function HomePage() {
   });
 
   const { data: competitiveContests = [] } = useQuery({
-    queryKey: ["/api/insights/competitive-contests"],
+    queryKey: ["/api/insights/competitive-contests", currentYear],
     queryFn: async () => {
-      const res = await fetch(`/api/insights/competitive-contests?limit=5`);
+      const res = await fetch(`/api/insights/competitive-contests?limit=5&year=${currentYear}`);
       if (!res.ok) throw new Error("Failed to fetch competitive contests");
       return res.json();
     },

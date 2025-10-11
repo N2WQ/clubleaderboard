@@ -184,7 +184,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/insights/competitive-contests", async (req, res) => {
     try {
       const limit = parseInt(req.query.limit as string) || 5;
-      const contests = await storage.getMostCompetitiveContests(limit);
+      const seasonYear = req.query.year ? parseInt(req.query.year as string) : currentYear;
+      const contests = await storage.getMostCompetitiveContests(limit, seasonYear);
       res.json(contests);
     } catch (error) {
       console.error("Competitive contests error:", error);
