@@ -53,8 +53,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const existingSubmissions = await storage.getActiveSubmissionsByContest(
         contestYear,
-        data.contest,
-        data.mode
+        data.contest
       );
       
       const existingSubmission = existingSubmissions.find(s => s.callsign === data.callsign);
@@ -63,7 +62,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await storage.deactivateSubmission(
           data.callsign,
           data.contest,
-          data.mode,
           contestYear
         );
       }
@@ -93,14 +91,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         content: content,
       });
 
-      await recomputeBaseline(contestYear, data.contest, data.mode);
+      await recomputeBaseline(contestYear, data.contest);
 
-      const baseline = await storage.getBaseline(contestYear, data.contest, data.mode);
+      const baseline = await storage.getBaseline(contestYear, data.contest);
       const memberOps = validation.memberOperators || [data.callsign];
       const individualClaimed = data.claimedScore / totalOperators;
       
       // Use dynamic max points based on scoring method
-      const maxPoints = await calculateMaxPoints(contestYear, data.contest, data.mode);
+      const maxPoints = await calculateMaxPoints(contestYear, data.contest);
       const normalizedPoints = baseline?.highestSingleClaimed 
         ? (individualClaimed / baseline.highestSingleClaimed) * maxPoints
         : maxPoints;
@@ -228,17 +226,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/contest/:key/:mode", async (req, res) => {
+  app.get("/api/contest/:key", async (req, res) => {
     try {
-      const { key, mode } = req.params;
+      const { key } = req.params;
       const seasonYear = parseInt(req.query.year as string) || currentYear;
       
-      const results = await storage.getContestResults(key.toUpperCase(), mode.toUpperCase(), seasonYear);
-      const baseline = await storage.getBaseline(seasonYear, key.toUpperCase(), mode.toUpperCase());
+      const results = await storage.getContestResults(key.toUpperCase(), seasonYear);
+      const baseline = await storage.getBaseline(seasonYear, key.toUpperCase());
 
       res.json({
         contestKey: key.toUpperCase(),
-        mode: mode.toUpperCase(),
         seasonYear,
         baseline: baseline?.highestSingleClaimed || 0,
         results,
@@ -362,8 +359,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/admin/recompute", async (req, res) => {
     try {
-      const { contestKey, mode, seasonYear } = req.body;
-      await recomputeBaseline(seasonYear || currentYear, contestKey, mode);
+      const { contestKey, seasonYear } = req.body;
+      await recomputeBaseline(seasonYear || currentYear, contestKey);
       res.json({ success: true });
     } catch (error) {
       console.error("Recompute error:", error);
@@ -373,12 +370,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/admin/recompute-all", async (req, res) => {
     try {
-      // Get all distinct contest/mode/year combinations
+      // Get all distinct contest/year combinations
       const allContests = await storage.getAllUniqueContests();
       
       let recomputedCount = 0;
       for (const contest of allContests) {
-        await recomputeBaseline(contest.contestYear, contest.contestKey, contest.mode);
+        await recomputeBaseline(contest.contestYear, contest.contestKey);
         recomputedCount++;
       }
       

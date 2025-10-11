@@ -30,13 +30,13 @@ export interface IStorage {
 
   createSubmission(submission: InsertSubmission): Promise<Submission>;
   getSubmission(id: number): Promise<Submission | undefined>;
-  getActiveSubmissionsByContest(seasonYear: number, contestKey: string, mode: string): Promise<Submission[]>;
-  deactivateSubmission(callsign: string, contestKey: string, mode: string, seasonYear: number): Promise<void>;
+  getActiveSubmissionsByContest(seasonYear: number, contestKey: string): Promise<Submission[]>;
+  deactivateSubmission(callsign: string, contestKey: string, seasonYear: number): Promise<void>;
   getSeasonLeaderboard(seasonYear: number): Promise<any[]>;
   getAllTimeLeaderboard(): Promise<any[]>;
   getAvailableYears(): Promise<number[]>;
   getMemberContestHistory(callsign: string, seasonYear: number): Promise<any[]>;
-  getContestResults(contestKey: string, mode: string, seasonYear: number): Promise<any[]>;
+  getContestResults(contestKey: string, seasonYear: number): Promise<any[]>;
   getAllSubmissions(seasonYear: number | undefined, memberCallsign?: string): Promise<any[]>;
   getSeasonStats(seasonYear: number): Promise<any>;
   getMostCompetitiveContests(limit: number): Promise<any[]>;
@@ -44,7 +44,7 @@ export interface IStorage {
 
   createRawLog(log: InsertRawLog): Promise<RawLog>;
 
-  getBaseline(seasonYear: number, contestKey: string, mode: string): Promise<Baseline | undefined>;
+  getBaseline(seasonYear: number, contestKey: string): Promise<Baseline | undefined>;
   upsertBaseline(baseline: InsertBaseline): Promise<void>;
 
   createOperatorPoints(points: InsertOperatorPoints): Promise<OperatorPoints>;
@@ -53,7 +53,7 @@ export interface IStorage {
 
   getScoringConfig(key: string): Promise<ScoringConfig | undefined>;
   setScoringConfig(config: InsertScoringConfig): Promise<void>;
-  getAllUniqueContests(): Promise<Array<{ contestYear: number; contestKey: string; mode: string }>>;
+  getAllUniqueContests(): Promise<Array<{ contestYear: number; contestKey: string }>>;
 }
 
 export class DbStorage implements IStorage {
@@ -114,25 +114,23 @@ export class DbStorage implements IStorage {
     return result[0];
   }
 
-  async getActiveSubmissionsByContest(seasonYear: number, contestKey: string, mode: string): Promise<Submission[]> {
+  async getActiveSubmissionsByContest(seasonYear: number, contestKey: string): Promise<Submission[]> {
     return db.select().from(schema.submissions).where(
       and(
         eq(schema.submissions.seasonYear, seasonYear),
         eq(schema.submissions.contestKey, contestKey),
-        eq(schema.submissions.mode, mode),
         eq(schema.submissions.isActive, true)
       )
     );
   }
 
-  async deactivateSubmission(callsign: string, contestKey: string, mode: string, seasonYear: number): Promise<void> {
+  async deactivateSubmission(callsign: string, contestKey: string, seasonYear: number): Promise<void> {
     await db.update(schema.submissions)
       .set({ isActive: false })
       .where(
         and(
           eq(schema.submissions.callsign, callsign),
           eq(schema.submissions.contestKey, contestKey),
-          eq(schema.submissions.mode, mode),
           eq(schema.submissions.seasonYear, seasonYear),
           eq(schema.submissions.isActive, true)
         )
@@ -144,7 +142,7 @@ export class DbStorage implements IStorage {
       .select({
         callsign: schema.operatorPoints.memberCallsign,
         totalPoints: sql<number>`ROUND(SUM(${schema.operatorPoints.normalizedPoints}))`,
-        contests: sql<number>`COUNT(DISTINCT ${schema.submissions.contestKey} || '_' || ${schema.submissions.mode})`,
+        contests: sql<number>`COUNT(DISTINCT ${schema.submissions.contestKey})`,
         totalClaimed: sql<number>`SUM(${schema.operatorPoints.individualClaimed})`,
       })
       .from(schema.operatorPoints)
@@ -182,7 +180,7 @@ export class DbStorage implements IStorage {
       .select({
         callsign: schema.operatorPoints.memberCallsign,
         totalPoints: sql<number>`ROUND(SUM(${schema.operatorPoints.normalizedPoints}))`,
-        contests: sql<number>`COUNT(DISTINCT ${schema.submissions.seasonYear} || '_' || ${schema.submissions.contestKey} || '_' || ${schema.submissions.mode})`,
+        contests: sql<number>`COUNT(DISTINCT ${schema.submissions.seasonYear} || '_' || ${schema.submissions.contestKey})`,
         totalClaimed: sql<number>`SUM(${schema.operatorPoints.individualClaimed})`,
       })
       .from(schema.operatorPoints)
@@ -240,11 +238,12 @@ export class DbStorage implements IStorage {
       .orderBy(desc(schema.submissions.submittedAt));
   }
 
-  async getContestResults(contestKey: string, mode: string, seasonYear: number): Promise<any[]> {
+  async getContestResults(contestKey: string, seasonYear: number): Promise<any[]> {
     const results = await db
       .select({
         contestYear: schema.submissions.contestYear,
         callsign: schema.submissions.callsign,
+        mode: schema.submissions.mode,
         claimedScore: schema.submissions.claimedScore,
         totalOperators: schema.submissions.totalOperators,
         effectiveOperators: schema.submissions.effectiveOperators,
@@ -258,7 +257,6 @@ export class DbStorage implements IStorage {
       .where(
         and(
           eq(schema.submissions.contestKey, contestKey),
-          eq(schema.submissions.mode, mode),
           eq(schema.submissions.seasonYear, seasonYear),
           eq(schema.submissions.isActive, true)
         )
@@ -267,6 +265,7 @@ export class DbStorage implements IStorage {
         schema.submissions.id,
         schema.submissions.contestYear,
         schema.submissions.callsign,
+        schema.submissions.mode,
         schema.submissions.claimedScore,
         schema.submissions.totalOperators,
         schema.submissions.effectiveOperators,
@@ -321,12 +320,11 @@ export class DbStorage implements IStorage {
     return result[0];
   }
 
-  async getBaseline(seasonYear: number, contestKey: string, mode: string): Promise<Baseline | undefined> {
+  async getBaseline(seasonYear: number, contestKey: string): Promise<Baseline | undefined> {
     const result = await db.select().from(schema.baselines).where(
       and(
         eq(schema.baselines.seasonYear, seasonYear),
-        eq(schema.baselines.contestKey, contestKey),
-        eq(schema.baselines.mode, mode)
+        eq(schema.baselines.contestKey, contestKey)
       )
     ).limit(1);
     return result[0];
@@ -334,7 +332,7 @@ export class DbStorage implements IStorage {
 
   async upsertBaseline(baseline: InsertBaseline): Promise<void> {
     await db.insert(schema.baselines).values(baseline).onConflictDoUpdate({
-      target: [schema.baselines.seasonYear, schema.baselines.contestKey, schema.baselines.mode],
+      target: [schema.baselines.seasonYear, schema.baselines.contestKey],
       set: {
         highestSingleClaimed: baseline.highestSingleClaimed,
       },
@@ -389,13 +387,12 @@ export class DbStorage implements IStorage {
 
     const uniqueContests = await db.selectDistinct({
       contestKey: schema.submissions.contestKey,
-      mode: schema.submissions.mode,
     }).from(schema.submissions)
       .where(and(
         eq(schema.submissions.seasonYear, seasonYear),
         eq(schema.submissions.isActive, true)
       ))
-      .orderBy(schema.submissions.contestKey, schema.submissions.mode);
+      .orderBy(schema.submissions.contestKey);
 
     return {
       activeMembers: activeCallsigns.size,
@@ -409,7 +406,6 @@ export class DbStorage implements IStorage {
     const results = await db
       .select({
         contestKey: schema.submissions.contestKey,
-        mode: schema.submissions.mode,
         operatorCount: sql<number>`COUNT(DISTINCT ${schema.operatorPoints.memberCallsign})`.as('operator_count'),
       })
       .from(schema.submissions)
@@ -420,13 +416,12 @@ export class DbStorage implements IStorage {
           eq(schema.submissions.status, 'accepted')
         )
       )
-      .groupBy(schema.submissions.contestKey, schema.submissions.mode)
+      .groupBy(schema.submissions.contestKey)
       .orderBy(desc(sql`operator_count`))
       .limit(limit);
 
     return results.map(r => ({
       contestKey: r.contestKey,
-      mode: r.mode,
       operatorCount: r.operatorCount,
     }));
   }
@@ -471,19 +466,17 @@ export class DbStorage implements IStorage {
     });
   }
 
-  async getAllUniqueContests(): Promise<Array<{ contestYear: number; contestKey: string; mode: string }>> {
+  async getAllUniqueContests(): Promise<Array<{ contestYear: number; contestKey: string }>> {
     const results = await db
       .selectDistinct({
         contestYear: schema.submissions.contestYear,
         contestKey: schema.submissions.contestKey,
-        mode: schema.submissions.mode,
       })
       .from(schema.submissions)
       .where(eq(schema.submissions.isActive, true))
       .orderBy(
         desc(schema.submissions.contestYear),
-        schema.submissions.contestKey,
-        schema.submissions.mode
+        schema.submissions.contestKey
       );
     
     return results;

@@ -11,13 +11,12 @@ export default function ContestDetailPage() {
   const contestKey = params.key?.toUpperCase() || "";
   
   const urlParams = new URLSearchParams(window.location.search);
-  const mode = urlParams.get("mode")?.toUpperCase() || "CW";
   const year = parseInt(urlParams.get("year") || new Date().getFullYear().toString());
 
   const { data, isLoading } = useQuery({
-    queryKey: ["/api/contest", contestKey, mode, year],
+    queryKey: ["/api/contest", contestKey, year],
     queryFn: async () => {
-      const res = await fetch(`/api/contest/${contestKey}/${mode}?year=${year}`);
+      const res = await fetch(`/api/contest/${contestKey}?year=${year}`);
       if (!res.ok) throw new Error("Failed to fetch contest details");
       return res.json();
     },
@@ -49,7 +48,7 @@ export default function ContestDetailPage() {
         ) : (
           <>
             <div className="mb-8">
-              <ContestBadge contest={contestKey} mode={mode} />
+              <ContestBadge contest={contestKey} />
               <h2 className="text-3xl font-bold mt-4 mb-6">Contest Results</h2>
 
               <div className="mb-8">

@@ -11,8 +11,7 @@ export async function getScoringMethod(): Promise<ScoringMethod> {
 
 export async function calculateMaxPoints(
   seasonYear: number,
-  contestKey: string,
-  mode: string
+  contestKey: string
 ): Promise<number> {
   const method = await getScoringMethod();
   
@@ -21,7 +20,7 @@ export async function calculateMaxPoints(
   }
   
   // participant-based: count unique member operators across all accepted submissions
-  const submissions = await storage.getActiveSubmissionsByContest(seasonYear, contestKey, mode);
+  const submissions = await storage.getActiveSubmissionsByContest(seasonYear, contestKey);
   const acceptedSubmissions = submissions.filter(s => s.status === 'accepted');
   
   // Collect all unique member operators
@@ -139,15 +138,14 @@ export async function computeNormalizedPoints(
   seasonYear: number
 ): Promise<number> {
   const individualClaimed = submission.claimedScore / submission.totalOperators;
-  const maxPoints = await calculateMaxPoints(seasonYear, submission.contestKey, submission.mode);
+  const maxPoints = await calculateMaxPoints(seasonYear, submission.contestKey);
 
-  const baseline = await storage.getBaseline(seasonYear, submission.contestKey, submission.mode);
+  const baseline = await storage.getBaseline(seasonYear, submission.contestKey);
   
   if (!baseline || !baseline.highestSingleClaimed || baseline.highestSingleClaimed === 0) {
     const allSubmissions = await storage.getActiveSubmissionsByContest(
       seasonYear,
-      submission.contestKey,
-      submission.mode
+      submission.contestKey
     );
     
     const singleOpSubmissions = allSubmissions.filter(s => s.effectiveOperators === 1);
@@ -161,7 +159,6 @@ export async function computeNormalizedPoints(
     await storage.upsertBaseline({
       seasonYear,
       contestKey: submission.contestKey,
-      mode: submission.mode,
       highestSingleClaimed: maxSingleOp,
     });
     
@@ -174,17 +171,16 @@ export async function computeNormalizedPoints(
 
 export async function recomputeBaseline(
   seasonYear: number,
-  contestKey: string,
-  mode: string
+  contestKey: string
 ): Promise<void> {
-  const submissions = await storage.getActiveSubmissionsByContest(seasonYear, contestKey, mode);
+  const submissions = await storage.getActiveSubmissionsByContest(seasonYear, contestKey);
   const acceptedSubmissions = submissions.filter(s => s.status === 'accepted');
   
   if (acceptedSubmissions.length === 0) {
     return;
   }
 
-  const maxPoints = await calculateMaxPoints(seasonYear, contestKey, mode);
+  const maxPoints = await calculateMaxPoints(seasonYear, contestKey);
   const singleOpSubmissions = acceptedSubmissions.filter(s => s.effectiveOperators === 1);
   
   let maxScore: number;
@@ -193,7 +189,6 @@ export async function recomputeBaseline(
     await storage.upsertBaseline({
       seasonYear,
       contestKey,
-      mode,
       highestSingleClaimed: maxScore,
     });
   } else {

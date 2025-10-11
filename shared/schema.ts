@@ -44,10 +44,9 @@ export const baselines = pgTable("baselines", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   seasonYear: integer("season_year").notNull(),
   contestKey: text("contest_key").notNull(),
-  mode: text("mode").notNull(),
   highestSingleClaimed: integer("highest_single_claimed"),
 }, (table) => ({
-  uniqueKey: unique().on(table.seasonYear, table.contestKey, table.mode),
+  uniqueKey: unique().on(table.seasonYear, table.contestKey),
 }));
 
 export const operatorPoints = pgTable("operator_points", {
@@ -90,7 +89,6 @@ export const insertRawLogSchema = z.object({
 export const insertBaselineSchema = z.object({
   seasonYear: z.number(),
   contestKey: z.string(),
-  mode: z.string(),
   highestSingleClaimed: z.number().optional(),
 });
 export const insertOperatorPointsSchema = z.object({

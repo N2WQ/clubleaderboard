@@ -11,6 +11,7 @@ import { StatusBadge } from "./StatusBadge";
 interface ContestResult {
   contestYear: number;
   callsign: string;
+  mode: string;
   claimedScore: number;
   individualClaimed: number;
   normalizedPoints: number;
@@ -30,6 +31,7 @@ export function ContestResultsTable({ results }: ContestResultsTableProps) {
           <TableRow>
             <TableHead>Year</TableHead>
             <TableHead>Callsign</TableHead>
+            <TableHead>Mode</TableHead>
             <TableHead className="text-right">Eligible Operators</TableHead>
             <TableHead className="text-right">Claimed Score</TableHead>
             <TableHead className="text-right">Per Operator</TableHead>
@@ -44,6 +46,9 @@ export function ContestResultsTable({ results }: ContestResultsTableProps) {
               </TableCell>
               <TableCell className="font-mono font-semibold">
                 {result.callsign}
+              </TableCell>
+              <TableCell className="font-mono text-muted-foreground">
+                {result.mode}
               </TableCell>
               <TableCell className="text-right font-mono">
                 {result.effectiveOperators}

@@ -3,7 +3,7 @@ import { Radio } from "lucide-react";
 
 interface ContestBadgeProps {
   contest: string;
-  mode: string;
+  mode?: string;
 }
 
 const modeColors: Record<string, string> = {
@@ -14,7 +14,7 @@ const modeColors: Record<string, string> = {
 };
 
 export function ContestBadge({ contest, mode }: ContestBadgeProps) {
-  const modeColor = modeColors[mode] || modeColors.MIXED;
+  const modeColor = modeColors[mode || "MIXED"] || modeColors.MIXED;
 
   return (
     <div className="flex items-center gap-2">
@@ -22,9 +22,11 @@ export function ContestBadge({ contest, mode }: ContestBadgeProps) {
         <Radio className="h-3 w-3 mr-1" />
         {contest}
       </Badge>
-      <Badge variant="outline" className={modeColor}>
-        {mode}
-      </Badge>
+      {mode && (
+        <Badge variant="outline" className={modeColor}>
+          {mode}
+        </Badge>
+      )}
     </div>
   );
 }
