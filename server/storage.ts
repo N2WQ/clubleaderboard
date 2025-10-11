@@ -385,19 +385,25 @@ export class DbStorage implements IStorage {
       }
     });
 
-    const uniqueContests = await db.selectDistinct({
+    const uniqueContests = await db.select({
       contestKey: schema.submissions.contestKey,
+      submissionCount: sql<number>`CAST(COUNT(DISTINCT ${schema.submissions.id}) AS INTEGER)`.as('submission_count'),
     }).from(schema.submissions)
       .where(and(
         eq(schema.submissions.seasonYear, seasonYear),
-        eq(schema.submissions.isActive, true)
+        eq(schema.submissions.isActive, true),
+        eq(schema.submissions.status, 'accepted')
       ))
+      .groupBy(schema.submissions.contestKey)
       .orderBy(schema.submissions.contestKey);
 
     return {
       activeMembers: activeCallsigns.size,
       eligibleMembers: eligibleMembers.length,
-      contests: uniqueContests,
+      contests: uniqueContests.map(c => ({
+        contestKey: c.contestKey,
+        submissionCount: Number(c.submissionCount),
+      })),
     };
   }
 
