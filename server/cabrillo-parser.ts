@@ -20,18 +20,7 @@ export interface ParsedCabrillo {
 }
 
 function normalizeContestKey(contest: string): string {
-  let normalized = contest.toUpperCase().trim();
-  
-  const modeSuffixes = ['-CW', '-SSB', '-RTTY', '-MIXED', '-PHONE', '-DIGITAL', ' CW', ' SSB', ' RTTY', ' MIXED', ' PHONE', ' DIGITAL'];
-  
-  for (const suffix of modeSuffixes) {
-    if (normalized.endsWith(suffix)) {
-      normalized = normalized.slice(0, -suffix.length).trim();
-      break;
-    }
-  }
-  
-  return normalized;
+  return contest.toUpperCase().trim();
 }
 
 function extractMode(categoryMode: string | undefined, contestName: string): string {
