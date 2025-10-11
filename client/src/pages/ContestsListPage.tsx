@@ -53,24 +53,21 @@ export default function ContestsListPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {contests.map((contest: { contestKey: string; submissionCount: number }) => (
-              <Link
-                key={contest.contestKey}
-                href={`/contest/${contest.contestKey}`}
-              >
-                <Card className="p-6 hover-elevate active-elevate-2 cursor-pointer" data-testid={`card-contest-${contest.contestKey}`}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Radio className="h-5 w-5 text-primary" />
-                      <div>
-                        <h3 className="font-semibold font-mono">{contest.contestKey}</h3>
-                      </div>
+              <Card key={contest.contestKey} className="p-6" data-testid={`card-contest-${contest.contestKey}`}>
+                <div className="flex items-center justify-between">
+                  <Link href={`/contest/${contest.contestKey}`} className="flex items-center gap-3 hover-elevate active-elevate-2 cursor-pointer p-2 -ml-2 rounded-md flex-1">
+                    <Radio className="h-5 w-5 text-primary" />
+                    <div>
+                      <h3 className="font-semibold font-mono">{contest.contestKey}</h3>
                     </div>
-                    <div className="text-sm text-muted-foreground">
+                  </Link>
+                  <Link href={`/contest/${contest.contestKey}`}>
+                    <div className="text-sm text-primary hover:underline cursor-pointer" data-testid={`log-count-${contest.contestKey}`}>
                       {contest.submissionCount} {contest.submissionCount === 1 ? 'log' : 'logs'}
                     </div>
-                  </div>
-                </Card>
-              </Link>
+                  </Link>
+                </div>
+              </Card>
             ))}
           </div>
         )}

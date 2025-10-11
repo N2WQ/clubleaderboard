@@ -165,8 +165,8 @@ export default function HomePage() {
                         <span className="font-mono font-semibold">{operator.callsign}</span>
                       </div>
                       <Link href={`/operator/${operator.callsign}`}>
-                        <span className="text-primary hover:underline cursor-pointer" data-testid={`total-score-${index}`}>
-                          {operator.totalScore?.toLocaleString()} pts
+                        <span className="text-primary hover:underline cursor-pointer" data-testid={`entry-count-${index}`}>
+                          {operator.entryCount} {operator.entryCount === 1 ? 'log' : 'logs'}
                         </span>
                       </Link>
                     </div>
@@ -203,12 +203,12 @@ export default function HomePage() {
                   {competitiveContests.map((contest: any, index: number) => (
                     <div key={contest.contestKey} className="flex items-center justify-between text-sm" data-testid={`competitive-contest-${index}`}>
                       <div className="flex items-center gap-2">
-                        <span className="text-muted-foreground w-5">#{index + 1}</span>
+                        <span className="text-muted-foreground w-5">#{contest.rank}</span>
                         <span className="font-mono font-semibold">{contest.contestKey}</span>
                       </div>
                       <Link href={`/contest/${contest.contestKey}`}>
                         <span className="text-primary hover:underline cursor-pointer" data-testid={`submission-count-${index}`}>
-                          {contest.submissionCount} logs
+                          {contest.submissionCount} {contest.submissionCount === 1 ? 'log' : 'logs'}
                         </span>
                       </Link>
                     </div>

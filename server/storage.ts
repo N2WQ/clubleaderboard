@@ -428,16 +428,27 @@ export class DbStorage implements IStorage {
     // Include all contests with submission counts >= 5th place count
     const filtered = results.filter(r => r.submissionCount >= fifthPlaceCount);
 
-    return filtered.map(r => ({
-      contestKey: r.contestKey,
-      submissionCount: r.submissionCount,
-      operatorCount: r.operatorCount,
-    }));
+    // Add dense ranking
+    let currentRank = 0;
+    let lastCount = -1;
+    
+    return filtered.map(r => {
+      if (r.submissionCount !== lastCount) {
+        currentRank++;
+        lastCount = r.submissionCount;
+      }
+      return {
+        rank: currentRank,
+        contestKey: r.contestKey,
+        submissionCount: r.submissionCount,
+        operatorCount: r.operatorCount,
+      };
+    });
   }
 
   async getMostActiveOperators(limit: number): Promise<any[]> {
-    // Get operators with highest total scores across all years
-    // Include all operators that tie with the 5th highest score
+    // Get operators with most submitted logs across all years
+    // Include all operators that tie with the 5th highest entry count
     const results = await db
       .select({
         callsign: schema.operatorPoints.memberCallsign,
@@ -453,14 +464,14 @@ export class DbStorage implements IStorage {
         )
       )
       .groupBy(schema.operatorPoints.memberCallsign)
-      .orderBy(desc(sql`total_score`))
+      .orderBy(desc(sql`entry_count`))
       .limit(100); // Get more than needed to handle ties
 
-    // Find the score of the 5th place (or last if fewer than 5)
-    const fifthPlaceScore = results[Math.min(limit - 1, results.length - 1)]?.totalScore || 0;
+    // Find the entry count of the 5th place (or last if fewer than 5)
+    const fifthPlaceCount = results[Math.min(limit - 1, results.length - 1)]?.entryCount || 0;
     
-    // Include all operators with scores >= 5th place score
-    const filtered = results.filter(r => r.totalScore >= fifthPlaceScore);
+    // Include all operators with entry counts >= 5th place count
+    const filtered = results.filter(r => r.entryCount >= fifthPlaceCount);
 
     return filtered.map(r => ({
       callsign: r.callsign,
