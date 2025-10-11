@@ -137,7 +137,7 @@ export class DbStorage implements IStorage {
     const result = await db
       .select({
         callsign: schema.operatorPoints.memberCallsign,
-        totalPoints: sql<number>`SUM(${schema.operatorPoints.normalizedPoints})`,
+        totalPoints: sql<number>`ROUND(SUM(${schema.operatorPoints.normalizedPoints}))`,
         contests: sql<number>`COUNT(DISTINCT ${schema.submissions.contestKey} || '_' || ${schema.submissions.mode})`,
         totalClaimed: sql<number>`SUM(${schema.operatorPoints.individualClaimed})`,
       })
@@ -150,7 +150,7 @@ export class DbStorage implements IStorage {
         )
       )
       .groupBy(schema.operatorPoints.memberCallsign)
-      .orderBy(desc(sql`SUM(${schema.operatorPoints.normalizedPoints})`));
+      .orderBy(desc(sql`ROUND(SUM(${schema.operatorPoints.normalizedPoints}))`));
 
     let currentRank = 1;
     let previousPoints: number | null = null;
@@ -175,7 +175,7 @@ export class DbStorage implements IStorage {
     const result = await db
       .select({
         callsign: schema.operatorPoints.memberCallsign,
-        totalPoints: sql<number>`SUM(${schema.operatorPoints.normalizedPoints})`,
+        totalPoints: sql<number>`ROUND(SUM(${schema.operatorPoints.normalizedPoints}))`,
         contests: sql<number>`COUNT(DISTINCT ${schema.submissions.seasonYear} || '_' || ${schema.submissions.contestKey} || '_' || ${schema.submissions.mode})`,
         totalClaimed: sql<number>`SUM(${schema.operatorPoints.individualClaimed})`,
       })
@@ -183,7 +183,7 @@ export class DbStorage implements IStorage {
       .innerJoin(schema.submissions, eq(schema.operatorPoints.submissionId, schema.submissions.id))
       .where(eq(schema.submissions.status, "accepted"))
       .groupBy(schema.operatorPoints.memberCallsign)
-      .orderBy(desc(sql`SUM(${schema.operatorPoints.normalizedPoints})`));
+      .orderBy(desc(sql`ROUND(SUM(${schema.operatorPoints.normalizedPoints}))`));
 
     let currentRank = 1;
     let previousPoints: number | null = null;
@@ -219,7 +219,7 @@ export class DbStorage implements IStorage {
         contest: schema.submissions.contestKey,
         mode: schema.submissions.mode,
         claimed: schema.operatorPoints.individualClaimed,
-        normalized: schema.operatorPoints.normalizedPoints,
+        normalized: sql<number>`ROUND(${schema.operatorPoints.normalizedPoints})`,
         date: schema.submissions.submittedAt,
       })
       .from(schema.operatorPoints)
@@ -245,7 +245,7 @@ export class DbStorage implements IStorage {
         status: schema.submissions.status,
         submittedAt: schema.submissions.submittedAt,
         individualClaimed: sql<number>`MAX(${schema.operatorPoints.individualClaimed})`.as('individualClaimed'),
-        normalizedPoints: sql<number>`MAX(${schema.operatorPoints.normalizedPoints})`.as('normalizedPoints'),
+        normalizedPoints: sql<number>`ROUND(MAX(${schema.operatorPoints.normalizedPoints}))`.as('normalizedPoints'),
       })
       .from(schema.submissions)
       .leftJoin(schema.operatorPoints, eq(schema.submissions.id, schema.operatorPoints.submissionId))
@@ -300,7 +300,7 @@ export class DbStorage implements IStorage {
         memberCallsign: schema.operatorPoints.memberCallsign,
         claimedScore: schema.submissions.claimedScore,
         individualClaimed: schema.operatorPoints.individualClaimed,
-        normalizedPoints: schema.operatorPoints.normalizedPoints,
+        normalizedPoints: sql<number>`ROUND(${schema.operatorPoints.normalizedPoints})`,
         submittedAt: schema.submissions.submittedAt,
         status: schema.submissions.status,
       })
