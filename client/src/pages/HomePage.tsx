@@ -162,11 +162,9 @@ export default function HomePage() {
               <div className="space-y-2">
                 {recentLogs.map((log: any, index: number) => (
                   <div key={log.id} className="flex items-center justify-between text-sm" data-testid={`recent-log-${index}`}>
-                    <Link href={`/submissions?callsign=${log.callsign}`}>
-                      <span className="font-mono font-semibold text-primary hover:underline cursor-pointer" data-testid={`recent-log-callsign-${index}`}>{log.callsign}</span>
-                    </Link>
+                    <span className="font-mono font-semibold text-muted-foreground" data-testid={`recent-log-callsign-${index}`}>{log.callsign}</span>
                     <Link href={`/contest/${log.contestKey}`}>
-                      <span className="text-muted-foreground hover:text-primary cursor-pointer text-xs" data-testid={`recent-log-contest-${index}`}>{log.contestKey}</span>
+                      <span className="text-primary hover:underline cursor-pointer text-xs" data-testid={`recent-log-contest-${index}`}>{log.contestKey}</span>
                     </Link>
                   </div>
                 ))}
