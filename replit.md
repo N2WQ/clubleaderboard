@@ -24,7 +24,7 @@ This project is an automated scoring system for the Yankee Clipper Contest Club 
 - **Duplicate Submission Handling**: Ensures that only the latest submission for a given callsign, contest, mode, and year is active, deactivating previous submissions.
 - **Dynamic Contest Year Parsing**: Extracts the contest year directly from QSO record dates in Cabrillo logs, allowing for historical data analysis and year-specific leaderboards.
 - **Dense Ranking**: Leaderboards utilize dense ranking (e.g., 1,1,1,2) for ties.
-- **Claimed Points Rounding**: Individual claimed points are rounded to the nearest integer for storage and display, while normalized points maintain full precision for ranking.
+- **Points Rounding**: Both individual claimed points and YCCC Points (normalized points) are rounded to whole numbers for storage and display.
 - **Perpetual Scoring**: Provides both current season and all-time aggregated leaderboards.
 - **Multiple File Upload**: Supports simultaneous upload of multiple Cabrillo log files.
 - **Admin Functionality**: Includes features for syncing the member roster from the YCCC website and clearing all contest data.
