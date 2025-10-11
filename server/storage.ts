@@ -495,6 +495,7 @@ export class DbStorage implements IStorage {
         id: schema.operatorPoints.id,
         submissionId: schema.operatorPoints.submissionId,
         memberCallsign: schema.operatorPoints.memberCallsign,
+        stationCallsign: schema.submissions.callsign,
         contestKey: schema.submissions.contestKey,
         seasonYear: schema.submissions.seasonYear,
         submittedAt: schema.submissions.submittedAt,
@@ -513,7 +514,8 @@ export class DbStorage implements IStorage {
     return results.map(r => ({
       id: r.id,
       submissionId: r.submissionId,
-      callsign: r.memberCallsign,
+      operatorCallsign: r.memberCallsign,
+      stationCallsign: r.stationCallsign,
       contestKey: r.contestKey,
       seasonYear: r.seasonYear,
       submittedAt: r.submittedAt,

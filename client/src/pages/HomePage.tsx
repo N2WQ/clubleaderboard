@@ -160,14 +160,19 @@ export default function HomePage() {
                 <h4 className="text-sm font-semibold">Most Recent Logs</h4>
               </div>
               <div className="space-y-2">
-                {recentLogs.map((log: any, index: number) => (
-                  <div key={log.id} className="flex items-center justify-between text-sm" data-testid={`recent-log-${index}`}>
-                    <span className="font-mono font-semibold text-muted-foreground" data-testid={`recent-log-callsign-${index}`}>{log.callsign}</span>
-                    <Link href={`/contest/${log.contestKey}`}>
-                      <span className="text-primary hover:underline cursor-pointer text-xs" data-testid={`recent-log-contest-${index}`}>{log.contestKey}</span>
-                    </Link>
-                  </div>
-                ))}
+                {recentLogs.map((log: any, index: number) => {
+                  const displayCallsign = log.operatorCallsign === log.stationCallsign 
+                    ? log.operatorCallsign 
+                    : `${log.operatorCallsign} (${log.stationCallsign})`;
+                  return (
+                    <div key={log.id} className="flex items-center justify-between text-sm" data-testid={`recent-log-${index}`}>
+                      <span className="font-mono font-semibold text-muted-foreground" data-testid={`recent-log-callsign-${index}`}>{displayCallsign}</span>
+                      <Link href={`/contest/${log.contestKey}`}>
+                        <span className="text-primary hover:underline cursor-pointer text-xs" data-testid={`recent-log-contest-${index}`}>{log.contestKey}</span>
+                      </Link>
+                    </div>
+                  );
+                })}
                 {recentLogs.length === 0 && (
                   <p className="text-sm text-muted-foreground text-center py-2">No logs yet</p>
                 )}
