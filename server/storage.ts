@@ -144,6 +144,7 @@ export class DbStorage implements IStorage {
         totalPoints: sql<number>`ROUND(SUM(${schema.operatorPoints.normalizedPoints}))`,
         contests: sql<number>`COUNT(DISTINCT ${schema.submissions.contestKey})`,
         totalClaimed: sql<number>`SUM(${schema.operatorPoints.individualClaimed})`,
+        totalLogs: sql<number>`CAST(COUNT(DISTINCT ${schema.operatorPoints.submissionId}) AS INTEGER)`,
       })
       .from(schema.operatorPoints)
       .innerJoin(schema.submissions, eq(schema.operatorPoints.submissionId, schema.submissions.id))
@@ -171,6 +172,7 @@ export class DbStorage implements IStorage {
         normalizedPoints: row.totalPoints,
         contests: row.contests,
         claimedScore: row.totalClaimed,
+        totalLogs: Number(row.totalLogs),
       };
     });
   }
@@ -182,6 +184,7 @@ export class DbStorage implements IStorage {
         totalPoints: sql<number>`ROUND(SUM(${schema.operatorPoints.normalizedPoints}))`,
         contests: sql<number>`COUNT(DISTINCT ${schema.submissions.seasonYear} || '_' || ${schema.submissions.contestKey})`,
         totalClaimed: sql<number>`SUM(${schema.operatorPoints.individualClaimed})`,
+        totalLogs: sql<number>`CAST(COUNT(DISTINCT ${schema.operatorPoints.submissionId}) AS INTEGER)`,
       })
       .from(schema.operatorPoints)
       .innerJoin(schema.submissions, eq(schema.operatorPoints.submissionId, schema.submissions.id))
@@ -204,6 +207,7 @@ export class DbStorage implements IStorage {
         normalizedPoints: row.totalPoints,
         contests: row.contests,
         claimedScore: row.totalClaimed,
+        totalLogs: Number(row.totalLogs),
       };
     });
   }

@@ -114,6 +114,8 @@ export default function HomePage() {
     eligibleMembers: seasonStats?.eligibleMembers || 0,
     contestsTracked: seasonStats?.contests?.length || 0,
   };
+
+  const totalLogs = leaderboard.reduce((sum: number, entry: any) => sum + (entry.totalLogs || 0), 0);
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border sticky top-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50">
@@ -257,7 +259,7 @@ export default function HomePage() {
             </div>
             
             <p className="text-sm text-muted-foreground">
-              {isLoading ? "Loading..." : `Showing ${leaderboard.length} members by YCCC points`}
+              {isLoading ? "Loading..." : `Showing ${leaderboard.length} members by YCCC points who have submitted a total of ${totalLogs.toLocaleString()} ${totalLogs === 1 ? 'log' : 'logs'}`}
             </p>
           </div>
 

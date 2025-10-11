@@ -49,6 +49,7 @@ This project is an automated scoring system for the Yankee Clipper Contest Club 
 - **Information Density**: Focuses on displaying key data clearly, with clickable elements for detailed views. Homepage features streamlined 2-card layout combining stats with top performer lists.
 - **Branding**: Renamed to "YCCC Awards Program" to reflect a broader scope.
 - **Homepage Cards**: Two combined cards - (1) Active Members + Most Active Operators, (2) Contests Tracked + Most Competitive Contests. Each card has clickable stat area with navigation and informational list below.
+- **Leaderboard Summary**: Displays contextual message showing member count and total logs submitted (e.g., "Showing 10 members by YCCC points who have submitted a total of 42 logs"). Updates dynamically for current season, all-time, and historical views.
 
 ### Database Schema
 - **members**: Stores callsign, active status, aliases, names, and dues expiration.
