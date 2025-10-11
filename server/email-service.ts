@@ -74,7 +74,7 @@ export function createSubmissionConfirmationEmail(
             <h1>YCCC Awards Program</h1>
           </div>
           <div class="content">
-            <h2 class="success">✓ Log Submission Accepted</h2>
+            <h2 class="success">Log Submission Accepted</h2>
             <p>Dear ${operatorCallsign},</p>
             <p>Your contest log submission has been successfully accepted and scored!</p>
             <div class="details">
@@ -116,7 +116,7 @@ export function createSubmissionConfirmationEmail(
             <h1>YCCC Awards Program</h1>
           </div>
           <div class="content">
-            <h2 class="warning">⚠ Log Submission Issue</h2>
+            <h2 class="warning">Log Submission Issue</h2>
             <p>Dear ${operatorCallsign},</p>
             <p>Your contest log submission was received but could not be accepted for scoring.</p>
             <div class="details">

@@ -25,6 +25,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const content = req.file.buffer.toString('utf-8');
+      const emailAddress = req.body.email; // Get email from form
       const parsed = parseCabrillo(content);
 
       if (!parsed.success || !parsed.data) {
@@ -112,28 +113,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         seasonYear: contestYear,
       });
 
-      // Send confirmation emails to operators with email addresses
-      for (const memberCallsign of memberOps) {
+      // Send confirmation email if email address was provided
+      if (emailAddress) {
         try {
-          const member = await storage.getMember(memberCallsign);
-          if (member?.email) {
-            const htmlContent = createSubmissionConfirmationEmail(
-              memberCallsign,
-              data.callsign,
-              data.contest,
-              contestYear,
-              data.claimedScore,
-              'accepted'
-            );
-            
-            await sendEmail({
-              to: member.email,
-              subject: `YCCC Awards: Log Accepted - ${data.contest}`,
-              htmlContent,
-            });
-          }
+          const htmlContent = createSubmissionConfirmationEmail(
+            memberOps[0], // Primary operator
+            data.callsign,
+            data.contest,
+            contestYear,
+            data.claimedScore,
+            'accepted'
+          );
+          
+          await sendEmail({
+            to: emailAddress,
+            subject: `YCCC Awards: Log Accepted - ${data.contest}`,
+            htmlContent,
+          });
         } catch (emailError) {
-          console.error(`Failed to send email to ${memberCallsign}:`, emailError);
+          console.error(`Failed to send confirmation email:`, emailError);
           // Don't fail the submission if email fails
         }
       }
