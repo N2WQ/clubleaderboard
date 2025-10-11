@@ -4,7 +4,7 @@ import multer from "multer";
 import Papa from "papaparse";
 import { storage } from "./storage";
 import { parseCabrillo } from "./cabrillo-parser";
-import { validateSubmission, computeNormalizedPoints, recomputeBaseline } from "./scoring-engine";
+import { validateSubmission, computeNormalizedPoints, recomputeBaseline, calculateMaxPoints } from "./scoring-engine";
 import { fetchYCCCRoster } from "./roster-scraper";
 import { setupWebSocket, broadcast } from "./websocket";
 import { startScheduler } from "./scheduler";
@@ -98,9 +98,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const baseline = await storage.getBaseline(contestYear, data.contest, data.mode);
       const memberOps = validation.memberOperators || [data.callsign];
       const individualClaimed = data.claimedScore / totalOperators;
+      
+      // Use dynamic max points based on scoring method
+      const maxPoints = await calculateMaxPoints(contestYear, data.contest, data.mode);
       const normalizedPoints = baseline?.highestSingleClaimed 
-        ? (individualClaimed / baseline.highestSingleClaimed) * 1000000
-        : 1000000;
+        ? (individualClaimed / baseline.highestSingleClaimed) * maxPoints
+        : maxPoints;
 
       broadcast("submission:created", {
         submissionId: submission.id,
@@ -378,6 +381,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Clear data error:", error);
       res.status(500).json({ error: "Failed to clear contest data" });
+    }
+  });
+
+  app.get("/api/admin/scoring-method", async (req, res) => {
+    try {
+      const config = await storage.getScoringConfig('scoring_method');
+      res.json({ 
+        method: config?.value || 'fixed',
+        updatedAt: config?.updatedAt || null,
+      });
+    } catch (error) {
+      console.error("Get scoring method error:", error);
+      res.status(500).json({ error: "Failed to get scoring method" });
+    }
+  });
+
+  app.post("/api/admin/scoring-method", async (req, res) => {
+    try {
+      const { method } = req.body;
+      
+      if (!['fixed', 'participant-based'].includes(method)) {
+        return res.status(400).json({ error: "Method must be 'fixed' or 'participant-based'" });
+      }
+
+      await storage.setScoringConfig({
+        key: 'scoring_method',
+        value: method,
+      });
+
+      res.json({ 
+        success: true,
+        method,
+        message: `Scoring method updated to '${method}'. You may want to recompute scores for this to take effect.`,
+      });
+    } catch (error) {
+      console.error("Set scoring method error:", error);
+      res.status(500).json({ error: "Failed to set scoring method" });
     }
   });
 

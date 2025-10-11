@@ -58,6 +58,13 @@ export const operatorPoints = pgTable("operator_points", {
   normalizedPoints: real("normalized_points").notNull(),
 });
 
+export const scoringConfig = pgTable("scoring_config", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  key: text("key").notNull().unique(),
+  value: text("value").notNull(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 export const insertMemberSchema = createInsertSchema(members);
 export const insertSubmissionSchema = z.object({
   seasonYear: z.number(),
@@ -92,6 +99,10 @@ export const insertOperatorPointsSchema = z.object({
   individualClaimed: z.number(),
   normalizedPoints: z.number(),
 });
+export const insertScoringConfigSchema = z.object({
+  key: z.string(),
+  value: z.string(),
+});
 
 export type Member = typeof members.$inferSelect;
 export type InsertMember = z.infer<typeof insertMemberSchema>;
@@ -103,3 +114,5 @@ export type Baseline = typeof baselines.$inferSelect;
 export type InsertBaseline = z.infer<typeof insertBaselineSchema>;
 export type OperatorPoints = typeof operatorPoints.$inferSelect;
 export type InsertOperatorPoints = z.infer<typeof insertOperatorPointsSchema>;
+export type ScoringConfig = typeof scoringConfig.$inferSelect;
+export type InsertScoringConfig = z.infer<typeof insertScoringConfigSchema>;

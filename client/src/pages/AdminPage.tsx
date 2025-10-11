@@ -8,6 +8,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatCard } from "@/components/StatCard";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { queryClient } from "@/lib/queryClient";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function AdminPage() {
   const [rosterFile, setRosterFile] = useState<File | null>(null);
@@ -20,6 +28,46 @@ export default function AdminPage() {
       const res = await fetch(`/api/leaderboard?year=${currentYear}`);
       if (!res.ok) throw new Error("Failed to fetch leaderboard");
       return res.json();
+    },
+  });
+
+  const { data: scoringMethod } = useQuery({
+    queryKey: ["/api/admin/scoring-method"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/scoring-method");
+      if (!res.ok) throw new Error("Failed to fetch scoring method");
+      return res.json();
+    },
+  });
+
+  const updateScoringMethodMutation = useMutation({
+    mutationFn: async (method: string) => {
+      const res = await fetch("/api/admin/scoring-method", {
+        method: "POST",
+        body: JSON.stringify({ method }),
+        headers: { "Content-Type": "application/json" },
+      });
+      
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Update failed");
+      }
+      
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/scoring-method"] });
+      toast({
+        title: "Scoring Method Updated",
+        description: data.message || "Scoring method has been updated successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        variant: "destructive",
+        title: "Update Failed",
+        description: error.message,
+      });
     },
   });
 
@@ -270,6 +318,57 @@ export default function AdminPage() {
           </TabsContent>
 
           <TabsContent value="settings" className="space-y-6">
+            <Card className="p-6">
+              <h3 className="text-xl font-semibold mb-4">Scoring Method</h3>
+              <p className="text-sm text-muted-foreground mb-6">
+                Configure how maximum YCCC points are calculated for contests
+              </p>
+
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="scoring-method">Scoring Method</Label>
+                  <Select
+                    value={scoringMethod?.method || 'fixed'}
+                    onValueChange={(value) => updateScoringMethodMutation.mutate(value)}
+                    disabled={updateScoringMethodMutation.isPending}
+                  >
+                    <SelectTrigger id="scoring-method" data-testid="select-scoring-method">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="fixed" data-testid="option-fixed">
+                        Fixed (1,000,000 points)
+                      </SelectItem>
+                      <SelectItem value="participant-based" data-testid="option-participant-based">
+                        Participant-Based (50k per participant, max 1M)
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="p-4 rounded-lg bg-muted">
+                  <p className="text-sm font-medium mb-2">Current Method: {scoringMethod?.method === 'participant-based' ? 'Participant-Based' : 'Fixed'}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {scoringMethod?.method === 'participant-based' 
+                      ? 'Maximum points = min(participant count × 50,000, 1,000,000). Rewards participation in smaller contests.'
+                      : 'Maximum points are always 1,000,000 regardless of participant count.'}
+                  </p>
+                  {scoringMethod?.updatedAt && (
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Last updated: {new Date(scoringMethod.updatedAt).toLocaleString()}
+                    </p>
+                  )}
+                </div>
+
+                <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                  <p className="text-sm font-medium text-blue-600 dark:text-blue-400">Note: After changing scoring method</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    You must recompute scores for all contests to apply the new method. Go to the contest detail page and use the recompute button.
+                  </p>
+                </div>
+              </div>
+            </Card>
+
             <Card className="p-6">
               <h3 className="text-xl font-semibold mb-4">Season Management</h3>
               <p className="text-sm text-muted-foreground mb-6">

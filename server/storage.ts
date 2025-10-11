@@ -13,6 +13,8 @@ import type {
   InsertBaseline,
   OperatorPoints,
   InsertOperatorPoints,
+  ScoringConfig,
+  InsertScoringConfig,
 } from "@shared/schema";
 
 const client = neon(process.env.DATABASE_URL!);
@@ -48,6 +50,9 @@ export interface IStorage {
   createOperatorPoints(points: InsertOperatorPoints): Promise<OperatorPoints>;
   deleteOperatorPointsBySubmission(submissionId: number): Promise<void>;
   clearAllContestData(): Promise<void>;
+
+  getScoringConfig(key: string): Promise<ScoringConfig | undefined>;
+  setScoringConfig(config: InsertScoringConfig): Promise<void>;
 }
 
 export class DbStorage implements IStorage {
@@ -448,6 +453,21 @@ export class DbStorage implements IStorage {
       callsign: r.callsign,
       entryCount: r.entryCount,
     }));
+  }
+
+  async getScoringConfig(key: string): Promise<ScoringConfig | undefined> {
+    const result = await db.select().from(schema.scoringConfig).where(eq(schema.scoringConfig.key, key)).limit(1);
+    return result[0];
+  }
+
+  async setScoringConfig(config: InsertScoringConfig): Promise<void> {
+    await db.insert(schema.scoringConfig).values(config).onConflictDoUpdate({
+      target: schema.scoringConfig.key,
+      set: {
+        value: config.value,
+        updatedAt: sql`NOW()`,
+      },
+    });
   }
 }
 

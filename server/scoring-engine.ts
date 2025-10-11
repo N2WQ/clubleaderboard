@@ -2,6 +2,47 @@ import { storage } from "./storage";
 import type { Submission, Member } from "@shared/schema";
 import { isDuesValidForYear } from "./roster-scraper";
 
+export type ScoringMethod = 'fixed' | 'participant-based';
+
+export async function getScoringMethod(): Promise<ScoringMethod> {
+  const config = await storage.getScoringConfig('scoring_method');
+  return (config?.value as ScoringMethod) || 'fixed';
+}
+
+export async function calculateMaxPoints(
+  seasonYear: number,
+  contestKey: string,
+  mode: string
+): Promise<number> {
+  const method = await getScoringMethod();
+  
+  if (method === 'fixed') {
+    return 1000000;
+  }
+  
+  // participant-based: count unique member operators across all accepted submissions
+  const submissions = await storage.getActiveSubmissionsByContest(seasonYear, contestKey, mode);
+  const acceptedSubmissions = submissions.filter(s => s.status === 'accepted');
+  
+  // Collect all unique member operators
+  const uniqueOperators = new Set<string>();
+  for (const sub of acceptedSubmissions) {
+    if (sub.memberOperators) {
+      const operators = sub.memberOperators.split(',').map(op => op.trim());
+      operators.forEach(op => uniqueOperators.add(op));
+    }
+  }
+  
+  const participantCount = uniqueOperators.size;
+  
+  // Fallback: if no participants found (e.g., first submission or data inconsistency),
+  // use the submission count or minimum of 1 to avoid zero max points
+  const effectiveParticipantCount = participantCount > 0 ? participantCount : Math.max(acceptedSubmissions.length, 1);
+  
+  // 50,000 points per participant, max 1,000,000
+  return Math.min(effectiveParticipantCount * 50000, 1000000);
+}
+
 export interface ValidationResult {
   valid: boolean;
   error?: string;
@@ -98,6 +139,7 @@ export async function computeNormalizedPoints(
   seasonYear: number
 ): Promise<number> {
   const individualClaimed = submission.claimedScore / submission.totalOperators;
+  const maxPoints = await calculateMaxPoints(seasonYear, submission.contestKey, submission.mode);
 
   const baseline = await storage.getBaseline(seasonYear, submission.contestKey, submission.mode);
   
@@ -112,7 +154,7 @@ export async function computeNormalizedPoints(
     
     if (singleOpSubmissions.length === 0) {
       const maxIndividual = Math.max(...allSubmissions.map(s => s.claimedScore / s.totalOperators));
-      return maxIndividual > 0 ? (individualClaimed / maxIndividual) * 1000000 : 1000000;
+      return maxIndividual > 0 ? (individualClaimed / maxIndividual) * maxPoints : maxPoints;
     }
     
     const maxSingleOp = Math.max(...singleOpSubmissions.map(s => s.claimedScore));
@@ -123,10 +165,10 @@ export async function computeNormalizedPoints(
       highestSingleClaimed: maxSingleOp,
     });
     
-    return (individualClaimed / maxSingleOp) * 1000000;
+    return (individualClaimed / maxSingleOp) * maxPoints;
   }
 
-  const normalizedPoints = (individualClaimed / baseline.highestSingleClaimed) * 1000000;
+  const normalizedPoints = (individualClaimed / baseline.highestSingleClaimed) * maxPoints;
   return normalizedPoints;
 }
 
@@ -142,6 +184,7 @@ export async function recomputeBaseline(
     return;
   }
 
+  const maxPoints = await calculateMaxPoints(seasonYear, contestKey, mode);
   const singleOpSubmissions = acceptedSubmissions.filter(s => s.effectiveOperators === 1);
   
   let maxScore: number;
@@ -163,7 +206,7 @@ export async function recomputeBaseline(
     
     const memberOps = sub.memberOperators?.split(',') || [];
     const individualClaimed = sub.claimedScore / sub.totalOperators;
-    const normalizedPoints = (individualClaimed / maxScore) * 1000000;
+    const normalizedPoints = (individualClaimed / maxScore) * maxPoints;
     
     for (const memberCall of memberOps) {
       await storage.createOperatorPoints({
