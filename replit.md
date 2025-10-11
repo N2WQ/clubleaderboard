@@ -44,6 +44,7 @@ This project is an automated scoring system for the Yankee Clipper Contest Club 
 - **Contest List Page**: The /contests page displays all contests for the current season with submission counts shown on each card. Each count is displayed as a number followed by "log" or "logs" (e.g., "4 logs"), styled in primary blue color as a clickable link that navigates to the contest detail page showing all submissions. Only accepted submissions are counted.
 - **Real-Time Updates**: WebSocket-based live updates automatically refresh the homepage when new logs are uploaded or roster is synced. No manual page refresh required. Server broadcasts "submission:created" and "roster:synced" events to all connected clients.
 - **Automatic Daily Roster Sync**: Scheduler runs roster synchronization from yccc.org immediately on server startup and then every 24 hours. Ensures member roster stays current automatically without manual intervention.
+- **Email Confirmations**: Optional email confirmation system using Gmail integration. Upload form includes email field; when provided, sends professional HTML confirmation email upon successful log acceptance. Email addresses are not stored - only used for immediate notification. System gracefully handles email failures without blocking submissions.
 
 ### UI/UX Decisions
 - **Layout**: Clean, minimal design with tabs for different leaderboard views (e.g., "2025 Season", "All-Time", "Historical").
@@ -63,3 +64,4 @@ This project is an automated scoring system for the Yankee Clipper Contest Club 
 ## External Dependencies
 - **PostgreSQL (Neon)**: Primary database for all application data.
 - **yccc.org/roster/**: Source for syncing the club member roster.
+- **Gmail API (via Replit connector)**: Sends confirmation emails for log submissions when email address is provided.
