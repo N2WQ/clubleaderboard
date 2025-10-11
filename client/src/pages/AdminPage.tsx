@@ -19,6 +19,8 @@ import {
 
 export default function AdminPage() {
   const [rosterFile, setRosterFile] = useState<File | null>(null);
+  const [emailCallsign, setEmailCallsign] = useState("");
+  const [emailAddress, setEmailAddress] = useState("");
   const { toast } = useToast();
   const currentYear = new Date().getFullYear();
 

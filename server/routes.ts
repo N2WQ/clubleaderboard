@@ -8,6 +8,7 @@ import { validateSubmission, computeNormalizedPoints, recomputeBaseline, calcula
 import { fetchYCCCRoster } from "./roster-scraper";
 import { setupWebSocket, broadcast } from "./websocket";
 import { startScheduler } from "./scheduler";
+import { sendEmail, createSubmissionConfirmationEmail } from "./email-service";
 
 const upload = multer({ 
   storage: multer.memoryStorage(),
@@ -110,6 +111,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         mode: data.mode,
         seasonYear: contestYear,
       });
+
+      // Send confirmation emails to operators with email addresses
+      for (const memberCallsign of memberOps) {
+        try {
+          const member = await storage.getMember(memberCallsign);
+          if (member?.email) {
+            const htmlContent = createSubmissionConfirmationEmail(
+              memberCallsign,
+              data.callsign,
+              data.contest,
+              contestYear,
+              data.claimedScore,
+              'accepted'
+            );
+            
+            await sendEmail({
+              to: member.email,
+              subject: `YCCC Awards: Log Accepted - ${data.contest}`,
+              htmlContent,
+            });
+          }
+        } catch (emailError) {
+          console.error(`Failed to send email to ${memberCallsign}:`, emailError);
+          // Don't fail the submission if email fails
+        }
+      }
 
       res.json({
         status: "accepted",
