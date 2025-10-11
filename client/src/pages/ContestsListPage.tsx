@@ -61,10 +61,10 @@ export default function ContestsListPage() {
                       <h3 className="font-semibold font-mono">{contest.contestKey}</h3>
                     </div>
                   </Link>
-                  <Link href={`/contest/${contest.contestKey}`} className="shrink-0">
-                    <div className="flex items-center gap-2 hover-elevate active-elevate-2 cursor-pointer p-2 rounded-md" data-testid={`log-count-${contest.contestKey}`}>
-                      <span className="text-2xl font-bold font-mono text-foreground">{contest.submissionCount}</span>
-                      <span className="text-sm text-muted-foreground">{contest.submissionCount === 1 ? 'log' : 'logs'}</span>
+                  <Link href={`/contest/${contest.contestKey}`} className="shrink-0" data-testid={`log-count-link-${contest.contestKey}`}>
+                    <div className="flex items-center gap-1 hover:underline cursor-pointer text-primary font-mono">
+                      <span className="text-lg font-bold">{contest.submissionCount}</span>
+                      <span className="text-sm">{contest.submissionCount === 1 ? 'log' : 'logs'}</span>
                     </div>
                   </Link>
                 </div>
