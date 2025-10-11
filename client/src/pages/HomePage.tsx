@@ -162,8 +162,8 @@ export default function HomePage() {
               <div className="space-y-2">
                 {recentLogs.map((log: any, index: number) => (
                   <div key={log.id} className="flex items-center justify-between text-sm" data-testid={`recent-log-${index}`}>
-                    <Link href={`/operator/${log.callsign}`}>
-                      <span className="font-mono font-semibold hover:text-primary cursor-pointer" data-testid={`recent-log-callsign-${index}`}>{log.callsign}</span>
+                    <Link href={`/submissions?callsign=${log.callsign}`}>
+                      <span className="font-mono font-semibold text-primary hover:underline cursor-pointer" data-testid={`recent-log-callsign-${index}`}>{log.callsign}</span>
                     </Link>
                     <Link href={`/contest/${log.contestKey}`}>
                       <span className="text-muted-foreground hover:text-primary cursor-pointer text-xs" data-testid={`recent-log-contest-${index}`}>{log.contestKey}</span>
@@ -184,12 +184,12 @@ export default function HomePage() {
               <div className="space-y-2">
                 {activeOperators.map((operator: any, index: number) => (
                   <div key={operator.callsign} className="flex items-center justify-between text-sm" data-testid={`active-operator-${index}`}>
+                    <span className="font-mono font-semibold text-muted-foreground">{operator.callsign}</span>
                     <Link href={`/operator/${operator.callsign}`}>
-                      <span className="font-mono font-semibold hover:text-primary cursor-pointer">{operator.callsign}</span>
+                      <span className="text-primary hover:underline cursor-pointer text-xs" data-testid={`entry-count-${index}`}>
+                        {operator.entryCount} {operator.entryCount === 1 ? 'log' : 'logs'}
+                      </span>
                     </Link>
-                    <span className="text-muted-foreground text-xs">
-                      {operator.entryCount} {operator.entryCount === 1 ? 'log' : 'logs'}
-                    </span>
                   </div>
                 ))}
                 {activeOperators.length === 0 && (
@@ -206,12 +206,12 @@ export default function HomePage() {
               <div className="space-y-2">
                 {competitiveContests.map((contest: any, index: number) => (
                   <div key={contest.contestKey} className="flex items-center justify-between text-sm" data-testid={`competitive-contest-${index}`}>
+                    <span className="font-mono font-semibold text-muted-foreground text-xs">{contest.contestKey}</span>
                     <Link href={`/contest/${contest.contestKey}`}>
-                      <span className="font-mono font-semibold hover:text-primary cursor-pointer text-xs">{contest.contestKey}</span>
+                      <span className="text-primary hover:underline cursor-pointer text-xs" data-testid={`submission-count-${index}`}>
+                        {contest.submissionCount} {contest.submissionCount === 1 ? 'log' : 'logs'}
+                      </span>
                     </Link>
-                    <span className="text-muted-foreground text-xs">
-                      {contest.submissionCount} {contest.submissionCount === 1 ? 'log' : 'logs'}
-                    </span>
                   </div>
                 ))}
                 {competitiveContests.length === 0 && (
