@@ -33,10 +33,14 @@ This project is an automated scoring system for the Yankee Clipper Contest Club 
 - **Multiple File Upload**: Supports simultaneous upload of multiple Cabrillo log files.
 - **Admin Functionality**: Includes features for syncing the member roster from the YCCC website and clearing all contest data.
 - **Members List**: Clickable Active Members stat card links to /members page showing all eligible members with current dues for the season. Displays callsign, name, dues expiration, and aliases in a sortable table.
-- **Contest Insights**: Homepage displays "Most Competitive Contests" showing top 5 contests by unique operator count (all years) and "Most Active Operators" showing top 5 operators by submission count (all years). APIs: `/api/insights/competitive-contests` and `/api/insights/active-operators`.
+- **Contest Insights**: Homepage displays:
+  - **Most Active Operators**: Top 5 operators by total YCCC points (all-time score) with tie handling. Displays formatted score (e.g., "5,000,000 pts"). Links to operator detail pages. API: `/api/insights/active-operators` returns top 5+ (including ties) based on total score.
+  - **Most Competitive Contests**: Top 5 contests by submission count (number of logs submitted) with tie handling. Displays count (e.g., "4 logs"). Links to contest detail pages. API: `/api/insights/competitive-contests` returns top 5+ (including ties) based on submission count.
+  - Both APIs fetch 100 records initially, then filter to include all records that tie with 5th place, ensuring complete rankings.
 - **Operator Detail Page**: New page at `/operator/:callsign` shows comprehensive operator history. Displays all-time rank, total YCCC points, total contests, and a detailed table of all submissions. API: `/api/operator/:callsign`.
 - **Year Display**: All submission and contest result views display the contest year extracted from QSO dates in the Cabrillo log, not the submission timestamp. This ensures accurate historical tracking.
-- **Interactive Insights**: Operator and entry counts in homepage insight cards are clickable. Clicking operator count in "Most Competitive Contests" navigates to contest detail page; clicking entry count in "Most Active Operators" navigates to operator detail page showing all submissions.
+- **Interactive Insights**: Score and submission count links in homepage insight cards are clickable. Clicking submission count in "Most Competitive Contests" navigates to contest detail page; clicking total score in "Most Active Operators" navigates to operator detail page.
+- **Contest List Page**: The /contests page displays all contests for the current season with submission counts shown on each card (e.g., "4 logs" or "1 log"). Contest cards link to contest detail pages using contestKey only (mode removed from URL).
 - **Real-Time Updates**: WebSocket-based live updates automatically refresh the homepage when new logs are uploaded or roster is synced. No manual page refresh required. Server broadcasts "submission:created" and "roster:synced" events to all connected clients.
 - **Automatic Daily Roster Sync**: Scheduler runs roster synchronization from yccc.org immediately on server startup and then every 24 hours. Ensures member roster stays current automatically without manual intervention.
 
