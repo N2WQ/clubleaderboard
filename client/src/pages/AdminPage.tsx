@@ -161,6 +161,35 @@ export default function AdminPage() {
     },
   });
 
+  const recomputeAllMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/admin/recompute-all", {
+        method: "POST",
+      });
+      
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Recompute failed");
+      }
+      
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/leaderboard"] });
+      toast({
+        title: "Recompute Complete",
+        description: data.message || `Successfully recomputed ${data.count} contest combinations`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        variant: "destructive",
+        title: "Recompute Failed",
+        description: error.message,
+      });
+    },
+  });
+
   const handleRosterUpload = () => {
     if (rosterFile) {
       uploadRosterMutation.mutate(rosterFile);
@@ -363,10 +392,25 @@ export default function AdminPage() {
                 <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/20">
                   <p className="text-sm font-medium text-blue-600 dark:text-blue-400">Note: After changing scoring method</p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    You must recompute scores for all contests to apply the new method. Go to the contest detail page and use the recompute button.
+                    Use the "Recompute All Contests" button below to apply the new scoring method to all existing contest data.
                   </p>
                 </div>
               </div>
+            </Card>
+
+            <Card className="p-6">
+              <h3 className="text-xl font-semibold mb-4">Recompute All Contests</h3>
+              <p className="text-sm text-muted-foreground mb-6">
+                Recalculate scores for all contests using the current scoring method. Use this after changing the scoring method.
+              </p>
+
+              <Button
+                onClick={() => recomputeAllMutation.mutate()}
+                disabled={recomputeAllMutation.isPending}
+                data-testid="button-recompute-all"
+              >
+                {recomputeAllMutation.isPending ? "Recomputing..." : "Recompute All Contests"}
+              </Button>
             </Card>
 
             <Card className="p-6">

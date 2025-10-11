@@ -371,6 +371,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/admin/recompute-all", async (req, res) => {
+    try {
+      // Get all distinct contest/mode/year combinations
+      const allContests = await storage.getAllUniqueContests();
+      
+      let recomputedCount = 0;
+      for (const contest of allContests) {
+        await recomputeBaseline(contest.contestYear, contest.contestKey, contest.mode);
+        recomputedCount++;
+      }
+      
+      res.json({ 
+        success: true, 
+        message: `Recomputed ${recomputedCount} contest combinations`,
+        count: recomputedCount
+      });
+    } catch (error) {
+      console.error("Recompute all error:", error);
+      res.status(500).json({ error: "Failed to recompute all contests" });
+    }
+  });
+
   app.post("/api/admin/clear-data", async (req, res) => {
     try {
       await storage.clearAllContestData();
