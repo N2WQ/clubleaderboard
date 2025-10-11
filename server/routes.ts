@@ -184,7 +184,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/insights/competitive-contests", async (req, res) => {
     try {
       const limit = parseInt(req.query.limit as string) || 5;
-      const seasonYear = req.query.year ? parseInt(req.query.year as string) : currentYear;
+      const seasonYear = req.query.year ? parseInt(req.query.year as string) : undefined;
       const contests = await storage.getMostCompetitiveContests(limit, seasonYear);
       res.json(contests);
     } catch (error) {
@@ -196,10 +196,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/insights/active-operators", async (req, res) => {
     try {
       const limit = parseInt(req.query.limit as string) || 5;
-      const operators = await storage.getMostActiveOperators(limit);
+      const seasonYear = req.query.year ? parseInt(req.query.year as string) : undefined;
+      const operators = await storage.getMostActiveOperators(limit, seasonYear);
       res.json(operators);
     } catch (error) {
       console.error("Active operators error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.get("/api/insights/recent-logs", async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 5;
+      const logs = await storage.getMostRecentLogs(limit);
+      res.json(logs);
+    } catch (error) {
+      console.error("Recent logs error:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   });

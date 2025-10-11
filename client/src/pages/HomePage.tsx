@@ -1,6 +1,6 @@
 import { ScoreboardTable } from "@/components/ScoreboardTable";
 import { StatCard } from "@/components/StatCard";
-import { Users, Radio, Upload, Trophy, Target } from "lucide-react";
+import { Users, Radio, Upload, Trophy, Target, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
@@ -22,6 +22,7 @@ export default function HomePage() {
       queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
       queryClient.invalidateQueries({ queryKey: ["/api/insights/competitive-contests"] });
       queryClient.invalidateQueries({ queryKey: ["/api/insights/active-operators"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/insights/recent-logs"] });
       queryClient.invalidateQueries({ queryKey: ["/api/available-years"] });
     }
   }, []);
@@ -79,10 +80,14 @@ export default function HomePage() {
     staleTime: 5 * 60 * 1000,
   });
 
+  // Determine the year parameter based on the active tab
+  const insightsYear = activeTab === "current" ? currentYear : activeTab === "historical" ? selectedYear : undefined;
+
   const { data: competitiveContests = [] } = useQuery({
-    queryKey: ["/api/insights/competitive-contests", currentYear],
+    queryKey: ["/api/insights/competitive-contests", activeTab, insightsYear],
     queryFn: async () => {
-      const res = await fetch(`/api/insights/competitive-contests?limit=5&year=${currentYear}`);
+      const yearParam = insightsYear ? `&year=${insightsYear}` : '';
+      const res = await fetch(`/api/insights/competitive-contests?limit=5${yearParam}`);
       if (!res.ok) throw new Error("Failed to fetch competitive contests");
       return res.json();
     },
@@ -90,10 +95,21 @@ export default function HomePage() {
   });
 
   const { data: activeOperators = [] } = useQuery({
-    queryKey: ["/api/insights/active-operators"],
+    queryKey: ["/api/insights/active-operators", activeTab, insightsYear],
     queryFn: async () => {
-      const res = await fetch(`/api/insights/active-operators?limit=5`);
+      const yearParam = insightsYear ? `&year=${insightsYear}` : '';
+      const res = await fetch(`/api/insights/active-operators?limit=5${yearParam}`);
       if (!res.ok) throw new Error("Failed to fetch active operators");
+      return res.json();
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const { data: recentLogs = [] } = useQuery({
+    queryKey: ["/api/insights/recent-logs"],
+    queryFn: async () => {
+      const res = await fetch(`/api/insights/recent-logs?limit=5`);
+      if (!res.ok) throw new Error("Failed to fetch recent logs");
       return res.json();
     },
     staleTime: 5 * 60 * 1000,
@@ -137,89 +153,107 @@ export default function HomePage() {
 
       <main className="container mx-auto px-4 py-12">
         <div className="mb-12">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Card className="p-6">
-              <Link href="/members" className="block mb-6" data-testid="link-members">
-                <div className="flex items-center justify-between gap-3 cursor-pointer hover-elevate active-elevate-2 p-4 -m-4 rounded-md">
-                  <div className="flex items-center gap-3">
-                    <Users className="h-8 w-8 text-primary" />
-                    <div>
-                      <h3 className="text-2xl font-bold font-mono" data-testid="text-active-members">
-                        {stats.activeMembers}/{stats.eligibleMembers}
-                      </h3>
-                      <p className="text-sm text-muted-foreground">Active Members</p>
-                    </div>
+              <div className="flex items-center gap-2 mb-4">
+                <Clock className="h-4 w-4 text-primary" />
+                <h4 className="text-sm font-semibold">Most Recent Logs</h4>
+              </div>
+              <div className="space-y-2">
+                {recentLogs.map((log: any, index: number) => (
+                  <div key={log.id} className="flex items-center justify-between text-sm" data-testid={`recent-log-${index}`}>
+                    <Link href={`/operator/${log.callsign}`}>
+                      <span className="font-mono font-semibold hover:text-primary cursor-pointer" data-testid={`recent-log-callsign-${index}`}>{log.callsign}</span>
+                    </Link>
+                    <Link href={`/contest/${log.contestKey}`}>
+                      <span className="text-muted-foreground hover:text-primary cursor-pointer text-xs" data-testid={`recent-log-contest-${index}`}>{log.contestKey}</span>
+                    </Link>
                   </div>
-                  <div className="text-muted-foreground">→</div>
-                </div>
-              </Link>
-              
-              <div className="border-t pt-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <Target className="h-4 w-4 text-primary" />
-                  <h4 className="text-sm font-semibold">Most Active Operators</h4>
-                </div>
-                <div className="space-y-2">
-                  {activeOperators.map((operator: any, index: number) => (
-                    <div key={operator.callsign} className="flex items-center justify-between text-sm" data-testid={`active-operator-${index}`}>
-                      <div className="flex items-center gap-2">
-                        <span className="text-muted-foreground w-5">#{index + 1}</span>
-                        <span className="font-mono font-semibold">{operator.callsign}</span>
-                      </div>
-                      <Link href={`/operator/${operator.callsign}`}>
-                        <span className="text-primary hover:underline cursor-pointer" data-testid={`entry-count-${index}`}>
-                          {operator.entryCount} {operator.entryCount === 1 ? 'log' : 'logs'}
-                        </span>
-                      </Link>
-                    </div>
-                  ))}
-                  {activeOperators.length === 0 && (
-                    <p className="text-sm text-muted-foreground text-center py-2">No data yet</p>
-                  )}
-                </div>
+                ))}
+                {recentLogs.length === 0 && (
+                  <p className="text-sm text-muted-foreground text-center py-2">No logs yet</p>
+                )}
               </div>
             </Card>
 
             <Card className="p-6">
-              <Link href="/contests" className="block mb-6" data-testid="link-contests">
-                <div className="flex items-center justify-between gap-3 cursor-pointer hover-elevate active-elevate-2 p-4 -m-4 rounded-md">
+              <div className="flex items-center gap-2 mb-4">
+                <Target className="h-4 w-4 text-primary" />
+                <h4 className="text-sm font-semibold">Most Active Operators</h4>
+              </div>
+              <div className="space-y-2">
+                {activeOperators.map((operator: any, index: number) => (
+                  <div key={operator.callsign} className="flex items-center justify-between text-sm" data-testid={`active-operator-${index}`}>
+                    <Link href={`/operator/${operator.callsign}`}>
+                      <span className="font-mono font-semibold hover:text-primary cursor-pointer">{operator.callsign}</span>
+                    </Link>
+                    <span className="text-muted-foreground text-xs">
+                      {operator.entryCount} {operator.entryCount === 1 ? 'log' : 'logs'}
+                    </span>
+                  </div>
+                ))}
+                {activeOperators.length === 0 && (
+                  <p className="text-sm text-muted-foreground text-center py-2">No data yet</p>
+                )}
+              </div>
+            </Card>
+
+            <Card className="p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <Trophy className="h-4 w-4 text-primary" />
+                <h4 className="text-sm font-semibold">Most Competitive Contests</h4>
+              </div>
+              <div className="space-y-2">
+                {competitiveContests.map((contest: any, index: number) => (
+                  <div key={contest.contestKey} className="flex items-center justify-between text-sm" data-testid={`competitive-contest-${index}`}>
+                    <Link href={`/contest/${contest.contestKey}`}>
+                      <span className="font-mono font-semibold hover:text-primary cursor-pointer text-xs">{contest.contestKey}</span>
+                    </Link>
+                    <span className="text-muted-foreground text-xs">
+                      {contest.submissionCount} {contest.submissionCount === 1 ? 'log' : 'logs'}
+                    </span>
+                  </div>
+                ))}
+                {competitiveContests.length === 0 && (
+                  <p className="text-sm text-muted-foreground text-center py-2">No data yet</p>
+                )}
+              </div>
+            </Card>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            <Card className="p-4">
+              <Link href="/members" data-testid="link-members">
+                <div className="flex items-center justify-between gap-3 cursor-pointer hover-elevate active-elevate-2 p-2 -m-2 rounded-md">
                   <div className="flex items-center gap-3">
-                    <Radio className="h-8 w-8 text-primary" />
+                    <Users className="h-6 w-6 text-primary" />
                     <div>
-                      <h3 className="text-2xl font-bold font-mono" data-testid="text-contests-tracked">
-                        {stats.contestsTracked}
+                      <h3 className="text-xl font-bold font-mono" data-testid="text-active-members">
+                        {stats.activeMembers}/{stats.eligibleMembers}
                       </h3>
-                      <p className="text-sm text-muted-foreground">Contests Tracked</p>
+                      <p className="text-xs text-muted-foreground">Active Members</p>
                     </div>
                   </div>
                   <div className="text-muted-foreground">→</div>
                 </div>
               </Link>
-              
-              <div className="border-t pt-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <Trophy className="h-4 w-4 text-primary" />
-                  <h4 className="text-sm font-semibold">Most Competitive Contests</h4>
-                </div>
-                <div className="space-y-2">
-                  {competitiveContests.map((contest: any, index: number) => (
-                    <div key={contest.contestKey} className="flex items-center justify-between text-sm" data-testid={`competitive-contest-${index}`}>
-                      <div className="flex items-center gap-2">
-                        <span className="text-muted-foreground w-5">#{contest.rank}</span>
-                        <span className="font-mono font-semibold">{contest.contestKey}</span>
-                      </div>
-                      <Link href={`/contest/${contest.contestKey}`}>
-                        <span className="text-primary hover:underline cursor-pointer" data-testid={`submission-count-${index}`}>
-                          {contest.submissionCount} {contest.submissionCount === 1 ? 'log' : 'logs'}
-                        </span>
-                      </Link>
+            </Card>
+
+            <Card className="p-4">
+              <Link href="/contests" data-testid="link-contests">
+                <div className="flex items-center justify-between gap-3 cursor-pointer hover-elevate active-elevate-2 p-2 -m-2 rounded-md">
+                  <div className="flex items-center gap-3">
+                    <Radio className="h-6 w-6 text-primary" />
+                    <div>
+                      <h3 className="text-xl font-bold font-mono" data-testid="text-contests-tracked">
+                        {stats.contestsTracked}
+                      </h3>
+                      <p className="text-xs text-muted-foreground">Contests Tracked</p>
                     </div>
-                  ))}
-                  {competitiveContests.length === 0 && (
-                    <p className="text-sm text-muted-foreground text-center py-2">No data yet</p>
-                  )}
+                  </div>
+                  <div className="text-muted-foreground">→</div>
                 </div>
-              </div>
+              </Link>
             </Card>
           </div>
         </div>

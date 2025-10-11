@@ -39,8 +39,9 @@ export interface IStorage {
   getContestResults(contestKey: string, seasonYear: number): Promise<any[]>;
   getAllSubmissions(seasonYear: number | undefined, memberCallsign?: string): Promise<any[]>;
   getSeasonStats(seasonYear: number): Promise<any>;
-  getMostCompetitiveContests(limit: number): Promise<any[]>;
-  getMostActiveOperators(limit: number): Promise<any[]>;
+  getMostCompetitiveContests(limit: number, seasonYear?: number): Promise<any[]>;
+  getMostActiveOperators(limit: number, seasonYear?: number): Promise<any[]>;
+  getMostRecentLogs(limit: number): Promise<any[]>;
 
   createRawLog(log: InsertRawLog): Promise<RawLog>;
 
@@ -412,9 +413,16 @@ export class DbStorage implements IStorage {
   }
 
   async getMostCompetitiveContests(limit: number, seasonYear?: number): Promise<any[]> {
-    // Get contests with most submissions for the current season (or all years if not specified)
+    // Get contests with most submissions for specific year or all-time
     // Include all contests that tie with the 5th highest submission count
-    const currentYear = seasonYear || new Date().getFullYear();
+    const whereConditions = [
+      eq(schema.submissions.isActive, true),
+      eq(schema.submissions.status, 'accepted')
+    ];
+    
+    if (seasonYear) {
+      whereConditions.push(eq(schema.submissions.seasonYear, seasonYear));
+    }
     
     const results = await db
       .select({
@@ -424,13 +432,7 @@ export class DbStorage implements IStorage {
       })
       .from(schema.submissions)
       .innerJoin(schema.operatorPoints, eq(schema.submissions.id, schema.operatorPoints.submissionId))
-      .where(
-        and(
-          eq(schema.submissions.seasonYear, currentYear),
-          eq(schema.submissions.isActive, true),
-          eq(schema.submissions.status, 'accepted')
-        )
-      )
+      .where(and(...whereConditions))
       .groupBy(schema.submissions.contestKey)
       .orderBy(desc(sql`submission_count`))
       .limit(100); // Get more than needed to handle ties
@@ -441,28 +443,25 @@ export class DbStorage implements IStorage {
     // Include all contests with submission counts >= 5th place count
     const filtered = results.filter(r => Number(r.submissionCount) >= fifthPlaceCount);
 
-    // Add dense ranking
-    let currentRank = 0;
-    let lastCount = -1;
-    
-    return filtered.map(r => {
-      const count = Number(r.submissionCount);
-      if (count !== lastCount) {
-        currentRank++;
-        lastCount = count;
-      }
-      return {
-        rank: currentRank,
-        contestKey: r.contestKey,
-        submissionCount: count,
-        operatorCount: Number(r.operatorCount),
-      };
-    });
+    return filtered.map(r => ({
+      contestKey: r.contestKey,
+      submissionCount: Number(r.submissionCount),
+      operatorCount: Number(r.operatorCount),
+    }));
   }
 
-  async getMostActiveOperators(limit: number): Promise<any[]> {
-    // Get operators with most submitted logs across all years
+  async getMostActiveOperators(limit: number, seasonYear?: number): Promise<any[]> {
+    // Get operators with most submitted logs for specific year or all-time
     // Include all operators that tie with the 5th highest entry count
+    const whereConditions = [
+      eq(schema.submissions.isActive, true),
+      eq(schema.submissions.status, 'accepted')
+    ];
+    
+    if (seasonYear) {
+      whereConditions.push(eq(schema.submissions.seasonYear, seasonYear));
+    }
+    
     const results = await db
       .select({
         callsign: schema.operatorPoints.memberCallsign,
@@ -471,12 +470,7 @@ export class DbStorage implements IStorage {
       })
       .from(schema.operatorPoints)
       .innerJoin(schema.submissions, eq(schema.operatorPoints.submissionId, schema.submissions.id))
-      .where(
-        and(
-          eq(schema.submissions.isActive, true),
-          eq(schema.submissions.status, 'accepted')
-        )
-      )
+      .where(and(...whereConditions))
       .groupBy(schema.operatorPoints.memberCallsign)
       .orderBy(desc(sql`entry_count`))
       .limit(100); // Get more than needed to handle ties
@@ -491,6 +485,37 @@ export class DbStorage implements IStorage {
       callsign: r.callsign,
       totalScore: Number(r.totalScore),
       entryCount: Number(r.entryCount),
+    }));
+  }
+
+  async getMostRecentLogs(limit: number): Promise<any[]> {
+    // Get the most recent accepted submissions regardless of year
+    const results = await db
+      .select({
+        id: schema.submissions.id,
+        callsign: schema.submissions.callsign,
+        contestKey: schema.submissions.contestKey,
+        seasonYear: schema.submissions.seasonYear,
+        claimedScore: schema.submissions.claimedScore,
+        submittedAt: schema.submissions.submittedAt,
+      })
+      .from(schema.submissions)
+      .where(
+        and(
+          eq(schema.submissions.isActive, true),
+          eq(schema.submissions.status, 'accepted')
+        )
+      )
+      .orderBy(desc(schema.submissions.submittedAt))
+      .limit(limit);
+
+    return results.map(r => ({
+      id: r.id,
+      callsign: r.callsign,
+      contestKey: r.contestKey,
+      seasonYear: r.seasonYear,
+      claimedScore: r.claimedScore,
+      submittedAt: r.submittedAt,
     }));
   }
 
