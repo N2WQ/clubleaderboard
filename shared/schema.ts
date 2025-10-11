@@ -10,6 +10,7 @@ export const members = pgTable("members", {
   firstName: text("first_name"),
   lastName: text("last_name"),
   duesExpiration: text("dues_expiration"),
+  email: text("email"),
 });
 
 export const rawLogs = pgTable("raw_logs", {
