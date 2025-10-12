@@ -1,6 +1,6 @@
 import { ScoreboardTable } from "@/components/ScoreboardTable";
 import { StatCard } from "@/components/StatCard";
-import { Users, Radio, Upload, Trophy, Target, Clock } from "lucide-react";
+import { Users, Radio, Upload, Trophy, Target, Clock, Medal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
@@ -13,7 +13,7 @@ import { queryClient } from "@/lib/queryClient";
 
 export default function HomePage() {
   const currentYear = new Date().getFullYear();
-  const [activeTab, setActiveTab] = useState("current");
+  const [activeTab, setActiveTab] = useState("alltime");
   const [selectedYear, setSelectedYear] = useState<number>(currentYear);
 
   const handleWebSocketMessage = useCallback((message: { event: string; data: any }) => {
@@ -241,11 +241,11 @@ export default function HomePage() {
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-4">
               <TabsList data-testid="tabs-leaderboard">
-                <TabsTrigger value="current" data-testid="tab-current">
-                  {currentYear}
-                </TabsTrigger>
                 <TabsTrigger value="alltime" data-testid="tab-alltime">
                   All-Time
+                </TabsTrigger>
+                <TabsTrigger value="current" data-testid="tab-current">
+                  {currentYear}
                 </TabsTrigger>
                 <TabsTrigger value="historical" data-testid="tab-historical">
                   Historical
@@ -271,9 +271,16 @@ export default function HomePage() {
               )}
             </div>
             
-            <p className="text-sm text-muted-foreground">
-              {isLoading ? "Loading..." : `Showing ${leaderboard.length} members by YCCC points who have submitted a total of ${totalLogs.toLocaleString()} ${totalLogs === 1 ? 'log' : 'logs'}`}
-            </p>
+            <div className="flex items-center gap-6 text-xs text-muted-foreground" data-testid="achievement-legend">
+              <div className="flex items-center gap-2" data-testid="legend-trophy">
+                <Trophy className="h-3.5 w-3.5 text-yellow-500" />
+                <span>Elite Performer (5M+ points)</span>
+              </div>
+              <div className="flex items-center gap-2" data-testid="legend-medal">
+                <Medal className="h-3.5 w-3.5 text-yellow-500" />
+                <span>High Achiever (1M+ points)</span>
+              </div>
+            </div>
           </div>
 
           <TabsContent value="current" data-testid="content-current">
