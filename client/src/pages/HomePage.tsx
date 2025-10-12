@@ -70,24 +70,20 @@ export default function HomePage() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const { data: seasonStats } = useQuery({
-    queryKey: ["/api/stats", currentYear],
+  const { data: alltimeStats } = useQuery({
+    queryKey: ["/api/stats"],
     queryFn: async () => {
-      const res = await fetch(`/api/stats?year=${currentYear}`);
-      if (!res.ok) throw new Error("Failed to fetch stats");
+      const res = await fetch(`/api/stats`);
+      if (!res.ok) throw new Error("Failed to fetch all-time stats");
       return res.json();
     },
     staleTime: 5 * 60 * 1000,
   });
 
-  // Determine the year parameter based on the active tab
-  const insightsYear = activeTab === "current" ? currentYear : activeTab === "historical" ? selectedYear : undefined;
-
   const { data: competitiveContests = [] } = useQuery({
-    queryKey: ["/api/insights/competitive-contests", activeTab, insightsYear],
+    queryKey: ["/api/insights/competitive-contests"],
     queryFn: async () => {
-      const yearParam = insightsYear ? `&year=${insightsYear}` : '';
-      const res = await fetch(`/api/insights/competitive-contests?limit=5${yearParam}`);
+      const res = await fetch(`/api/insights/competitive-contests?limit=5`);
       if (!res.ok) throw new Error("Failed to fetch competitive contests");
       return res.json();
     },
@@ -95,10 +91,9 @@ export default function HomePage() {
   });
 
   const { data: activeOperators = [] } = useQuery({
-    queryKey: ["/api/insights/active-operators", activeTab, insightsYear],
+    queryKey: ["/api/insights/active-operators"],
     queryFn: async () => {
-      const yearParam = insightsYear ? `&year=${insightsYear}` : '';
-      const res = await fetch(`/api/insights/active-operators?limit=5${yearParam}`);
+      const res = await fetch(`/api/insights/active-operators?limit=5`);
       if (!res.ok) throw new Error("Failed to fetch active operators");
       return res.json();
     },
@@ -125,13 +120,11 @@ export default function HomePage() {
     activeTab === "alltime" ? isLoadingAlltime :
     isLoadingHistorical;
 
-  const stats = {
-    activeMembers: seasonStats?.activeMembers || 0,
-    eligibleMembers: seasonStats?.eligibleMembers || 0,
-    contestsTracked: seasonStats?.contests?.length || 0,
-  };
-
   const totalLogs = leaderboard.reduce((sum: number, entry: any) => sum + (entry.totalLogs || 0), 0);
+  
+  // Calculate total logs for all-time from all-time leaderboard
+  const alltimeTotalLogs = alltimeLeaderboard.reduce((sum: number, entry: any) => sum + (entry.totalLogs || 0), 0);
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border sticky top-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50">
@@ -159,7 +152,7 @@ export default function HomePage() {
                 <Clock className="h-4 w-4 text-primary" />
                 <h4 className="text-sm font-semibold">Most Recent Logs</h4>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2 mb-4">
                 {recentLogs.map((log: any, index: number) => {
                   const displayCallsign = log.operatorCallsign === log.stationCallsign 
                     ? log.operatorCallsign 
@@ -177,6 +170,11 @@ export default function HomePage() {
                   <p className="text-sm text-muted-foreground text-center py-2">No logs yet</p>
                 )}
               </div>
+              <div className="pt-4 border-t border-border">
+                <p className="text-xs text-muted-foreground text-center">
+                  {alltimeTotalLogs.toLocaleString()} total {alltimeTotalLogs === 1 ? 'log' : 'logs'} submitted
+                </p>
+              </div>
             </Card>
 
             <Card className="p-6">
@@ -184,7 +182,7 @@ export default function HomePage() {
                 <Target className="h-4 w-4 text-primary" />
                 <h4 className="text-sm font-semibold">Most Active Operators</h4>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2 mb-4">
                 {activeOperators.map((operator: any, index: number) => (
                   <div key={operator.callsign} className="flex items-center justify-between text-sm" data-testid={`active-operator-${index}`}>
                     <span className="font-mono font-semibold text-muted-foreground">{operator.callsign}</span>
@@ -199,6 +197,13 @@ export default function HomePage() {
                   <p className="text-sm text-muted-foreground text-center py-2">No data yet</p>
                 )}
               </div>
+              <div className="pt-4 border-t border-border">
+                <Link href="/members" data-testid="link-members">
+                  <p className="text-xs text-muted-foreground text-center hover:text-primary cursor-pointer">
+                    {alltimeStats?.activeMembers || 0}/{alltimeStats?.eligibleMembers || 0} Active Members
+                  </p>
+                </Link>
+              </div>
             </Card>
 
             <Card className="p-6">
@@ -206,7 +211,7 @@ export default function HomePage() {
                 <Trophy className="h-4 w-4 text-primary" />
                 <h4 className="text-sm font-semibold">Most Competitive Contests</h4>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2 mb-4">
                 {competitiveContests.map((contest: any, index: number) => (
                   <div key={contest.contestKey} className="flex items-center justify-between text-sm" data-testid={`competitive-contest-${index}`}>
                     <span className="font-mono font-semibold text-muted-foreground text-xs">{contest.contestKey}</span>
@@ -221,42 +226,13 @@ export default function HomePage() {
                   <p className="text-sm text-muted-foreground text-center py-2">No data yet</p>
                 )}
               </div>
-            </Card>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-            <Card className="p-4">
-              <Link href="/members" data-testid="link-members">
-                <div className="flex items-center justify-between gap-3 cursor-pointer hover-elevate active-elevate-2 p-2 -m-2 rounded-md">
-                  <div className="flex items-center gap-3">
-                    <Users className="h-6 w-6 text-primary" />
-                    <div>
-                      <h3 className="text-xl font-bold font-mono" data-testid="text-active-members">
-                        {stats.activeMembers}/{stats.eligibleMembers}
-                      </h3>
-                      <p className="text-xs text-muted-foreground">Active Members</p>
-                    </div>
-                  </div>
-                  <div className="text-muted-foreground">→</div>
-                </div>
-              </Link>
-            </Card>
-
-            <Card className="p-4">
-              <Link href="/contests" data-testid="link-contests">
-                <div className="flex items-center justify-between gap-3 cursor-pointer hover-elevate active-elevate-2 p-2 -m-2 rounded-md">
-                  <div className="flex items-center gap-3">
-                    <Radio className="h-6 w-6 text-primary" />
-                    <div>
-                      <h3 className="text-xl font-bold font-mono" data-testid="text-contests-tracked">
-                        {stats.contestsTracked}
-                      </h3>
-                      <p className="text-xs text-muted-foreground">Contests Tracked</p>
-                    </div>
-                  </div>
-                  <div className="text-muted-foreground">→</div>
-                </div>
-              </Link>
+              <div className="pt-4 border-t border-border">
+                <Link href="/contests" data-testid="link-contests">
+                  <p className="text-xs text-muted-foreground text-center hover:text-primary cursor-pointer">
+                    {alltimeStats?.contests?.length || 0} Contests Tracked
+                  </p>
+                </Link>
+              </div>
             </Card>
           </div>
         </div>
@@ -324,43 +300,13 @@ export default function HomePage() {
             {isLoading ? (
               <div className="text-center py-12 text-muted-foreground">Loading leaderboard...</div>
             ) : leaderboard.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">No submissions for {selectedYear}. Upload logs to populate this year!</div>
+              <div className="text-center py-12 text-muted-foreground">No submissions for {selectedYear}. Select a different year.</div>
             ) : (
               <ScoreboardTable entries={leaderboard} />
             )}
           </TabsContent>
         </Tabs>
-
-        <div className="mt-12">
-          <div className="p-6 rounded-lg border border-border max-w-2xl mx-auto">
-            <h4 className="font-semibold mb-2">How It Works</h4>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li className="flex gap-2">
-                <span className="text-primary">1.</span>
-                Submit your Cabrillo log file (.log or .cbr)
-              </li>
-              <li className="flex gap-2">
-                <span className="text-primary">2.</span>
-                System validates club affiliation and operators
-              </li>
-              <li className="flex gap-2">
-                <span className="text-primary">3.</span>
-                YCCC Points calculated to 1M maximum per contest/mode
-              </li>
-              <li className="flex gap-2">
-                <span className="text-primary">4.</span>
-                Results appear instantly on the scoreboard
-              </li>
-            </ul>
-          </div>
-        </div>
       </main>
-
-      <footer className="border-t border-border mt-24 py-8">
-        <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-          <p>Yankee Clipper Contest Club • Automated Scoring System</p>
-        </div>
-      </footer>
     </div>
   );
 }
