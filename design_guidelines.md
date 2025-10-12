@@ -177,7 +177,7 @@ Use Tailwind units: 2, 4, 6, 8, 12, 16, 24 for consistent rhythm
 - Baseline info card: Highest single-op score highlighted
 - Full results table: All participants with individual and normalized scores
 
-### Admin Dashboard (/admin)
+### Admin Dashboard (/skipper)
 - Sidebar navigation: Submissions, Members, Settings
 - Main content area: Data tables with inline actions
 - Bulk action toolbar when items selected
