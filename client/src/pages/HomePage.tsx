@@ -16,9 +16,9 @@ const getAchievementIcon = (totalScore: number) => {
   if (totalScore >= 5000000) {
     return { icon: Trophy, label: "Elite Performer - 5M+ points", color: "text-yellow-500" };
   } else if (totalScore >= 1000000) {
-    return { icon: Medal, label: "High Achiever - 1M+ points", color: "text-yellow-500" };
+    return { icon: Medal, label: "High Achiever - 1M-<5M points", color: "text-yellow-500" };
   } else if (totalScore >= 500000) {
-    return { icon: Star, label: "Runner Up - 500K+ points", color: "text-yellow-500" };
+    return { icon: Star, label: "Runner Up - 500K-<1M points", color: "text-yellow-500" };
   }
   return null;
 };
@@ -270,6 +270,21 @@ export default function HomePage() {
                 </Link>
               </div>
             </Card>
+          </div>
+          
+          <div className="flex items-center justify-center gap-8 mt-4 text-xs text-muted-foreground" data-testid="achievement-legend">
+            <div className="flex items-center gap-2" data-testid="legend-trophy">
+              <Trophy className="h-3.5 w-3.5 text-yellow-500" />
+              <span>Elite Performer (5M+)</span>
+            </div>
+            <div className="flex items-center gap-2" data-testid="legend-medal">
+              <Medal className="h-3.5 w-3.5 text-yellow-500" />
+              <span>High Achiever (1M-&lt;5M)</span>
+            </div>
+            <div className="flex items-center gap-2" data-testid="legend-star">
+              <Star className="h-3.5 w-3.5 text-yellow-500" />
+              <span>Runner Up (500K-&lt;1M)</span>
+            </div>
           </div>
         </div>
 

@@ -57,6 +57,7 @@ This project is an automated scoring system for the Yankee Clipper Contest Club 
   - **Medal icon** (gold) for operators with 1M-5M points - "High Achiever"
   - **Star icon** (gold) for operators with 500K-1M points - "Runner Up"
   - Icons use Lucide React components in gold/yellow color (text-yellow-500) with accessible screen-reader labels, positioned after callsign in insight boxes only (not on leaderboard tables).
+  - **Achievement Legend**: Centered legend displayed below the three insight boxes explaining all achievement tiers with icons and labels.
 
 ### Database Schema
 - **members**: Stores callsign, active status, aliases, names, and dues expiration.
