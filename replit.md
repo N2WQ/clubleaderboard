@@ -34,8 +34,8 @@ This project is an automated scoring system for the Yankee Clipper Contest Club 
 - **Admin Functionality**: Includes features for syncing the member roster from the YCCC website and clearing all contest data.
 - **Members List**: Clickable Active Members stat card links to /members page showing all eligible members with current dues for the season. Displays callsign, name, dues expiration, and aliases in a sortable table.
 - **Contest Insights**: Homepage displays three insight boxes showing all-time data (independent of leaderboard tab selection):
-  - **Most Recent Logs**: Shows 5 most recent operator entries from accepted submissions. Displays member operator callsign (muted text) and contest key as blue clickable link to submission detail page. Bottom section shows total all-time logs count. Queries operator_points table to show individual operators, not station callsigns. API: `/api/insights/recent-logs` returns latest 5 operator entries ordered by submission date.
-  - **Most Active Operators**: Top 5 operators by number of submitted logs (all-time) with tie handling. Displays entry count without ranking numbers. Links to operator detail pages. Bottom section shows "X/Y Active Members" as clickable link to /members page. API: `/api/insights/active-operators` returns top 5+ (including ties) based on all-time entry count.
+  - **Most Recent Logs**: Shows 5 most recent operator entries from accepted submissions. Displays member operator callsign (muted text) with achievement icons, and contest key as blue clickable link to submission detail page. Bottom section shows total all-time logs count. Queries operator_points table to show individual operators, not station callsigns. API: `/api/insights/recent-logs` returns latest 5 operator entries with totalScore for achievement tier determination.
+  - **Most Active Operators**: Top 5 operators by number of submitted logs (all-time) with tie handling. Displays entry count without ranking numbers, with achievement icons next to operator callsigns. Links to operator detail pages. Bottom section shows "X/Y Active Members" as clickable link to /members page. API: `/api/insights/active-operators` returns top 5+ (including ties) with totalScore for achievement icons.
   - **Most Competitive Contests**: Top 5 contests by submission count (all-time) with tie handling. Displays submission count without ranking numbers. Links to contest detail pages. Bottom section shows "X Contests Tracked" as clickable link to /contests page. API: `/api/insights/competitive-contests` returns top 5+ (including ties) based on all-time submissions.
   - All insight boxes remain static when switching leaderboard tabs. Stats at bottom use all-time data from `/api/stats` endpoint (no year filter). APIs fetch 100 records initially, then filter to include all records that tie with 5th place, ensuring complete rankings. Counts are cast to integers to ensure numeric values.
 - **Operator Detail Page**: New page at `/operator/:callsign` shows comprehensive operator history. Displays all-time rank, total YCCC points, total contests, and a detailed table of all submissions. API: `/api/operator/:callsign`.
@@ -51,12 +51,12 @@ This project is an automated scoring system for the Yankee Clipper Contest Club 
 - **Information Density**: Focuses on displaying key data clearly, with clickable elements for detailed views. Homepage features streamlined 2-card layout combining stats with top performer lists.
 - **Branding**: Renamed to "YCCC Awards Program" to reflect a broader scope.
 - **Homepage Cards**: Two combined cards - (1) Active Members + Most Active Operators, (2) Contests Tracked + Most Competitive Contests. Each card has clickable stat area with navigation and informational list below.
-- **Leaderboard Display**: Clean tabbed interface without summary text. All-Time tab is the default view. Achievement legend displayed alongside tabs explaining icon meanings.
-- **Achievement Icons**: Leaderboards display achievement icons next to operator callsigns based on total YCCC points:
+- **Leaderboard Display**: Clean tabbed interface without summary text. All-Time tab is the default view.
+- **Achievement Icons**: Insight boxes (Most Recent Logs and Most Active Operators) display achievement icons next to operator callsigns based on all-time total YCCC points:
   - **Trophy icon** (gold) for operators with 5M+ points - "Elite Performer"
   - **Medal icon** (gold) for operators with 1M-5M points - "High Achiever"
-  - Icons use Lucide React components in gold/yellow color (text-yellow-500) with accessible screen-reader labels, positioned after callsign on all leaderboard views (current year, all-time, historical).
-  - **Achievement Legend**: Displayed on right side of tabs with both icon symbols and descriptions for easy reference.
+  - **Runner icon (UserRound)** (gold) for operators with 500K-1M points - "Runner Up"
+  - Icons use Lucide React components in gold/yellow color (text-yellow-500) with accessible screen-reader labels, positioned after callsign in insight boxes only (not on leaderboard tables).
 
 ### Database Schema
 - **members**: Stores callsign, active status, aliases, names, and dues expiration.
