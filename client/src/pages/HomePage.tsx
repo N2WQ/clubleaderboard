@@ -1,6 +1,6 @@
 import { ScoreboardTable } from "@/components/ScoreboardTable";
 import { StatCard } from "@/components/StatCard";
-import { Users, Radio, Upload, Trophy, Target, Clock, Medal } from "lucide-react";
+import { Users, Radio, Upload, Trophy, Target, Clock, Medal, UserRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
@@ -10,6 +10,18 @@ import { Card } from "@/components/ui/card";
 import { useState, useCallback } from "react";
 import { useWebSocket } from "@/hooks/use-websocket";
 import { queryClient } from "@/lib/queryClient";
+
+// Achievement icon helper
+const getAchievementIcon = (totalScore: number) => {
+  if (totalScore >= 5000000) {
+    return { icon: Trophy, label: "Elite Performer - 5M+ points", color: "text-yellow-500" };
+  } else if (totalScore >= 1000000) {
+    return { icon: Medal, label: "High Achiever - 1M+ points", color: "text-yellow-500" };
+  } else if (totalScore >= 500000) {
+    return { icon: UserRound, label: "Runner Up - 500K+ points", color: "text-yellow-500" };
+  }
+  return null;
+};
 
 export default function HomePage() {
   const currentYear = new Date().getFullYear();
@@ -157,9 +169,20 @@ export default function HomePage() {
                   const displayCallsign = log.operatorCallsign === log.stationCallsign 
                     ? log.operatorCallsign 
                     : `${log.operatorCallsign} (${log.stationCallsign})`;
+                  const achievement = getAchievementIcon(log.totalScore || 0);
+                  const AchievementIcon = achievement?.icon;
+                  
                   return (
                     <div key={log.id} className="flex items-center justify-between text-sm" data-testid={`recent-log-${index}`}>
-                      <span className="font-mono font-semibold text-muted-foreground" data-testid={`recent-log-callsign-${index}`}>{displayCallsign}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono font-semibold text-muted-foreground" data-testid={`recent-log-callsign-${index}`}>{displayCallsign}</span>
+                        {achievement && AchievementIcon && (
+                          <span className="inline-flex items-center" data-testid={`recent-log-achievement-${index}`}>
+                            <AchievementIcon className={`h-3.5 w-3.5 ${achievement.color}`} />
+                            <span className="sr-only">{achievement.label}</span>
+                          </span>
+                        )}
+                      </div>
                       <Link href={`/submission/${log.submissionId}`}>
                         <span className="text-primary hover:underline cursor-pointer text-xs" data-testid={`recent-log-contest-${index}`}>{log.contestKey}</span>
                       </Link>
@@ -183,16 +206,29 @@ export default function HomePage() {
                 <h4 className="text-sm font-semibold">Most Active Operators</h4>
               </div>
               <div className="space-y-2 mb-4 flex-1">
-                {activeOperators.map((operator: any, index: number) => (
-                  <div key={operator.callsign} className="flex items-center justify-between text-sm" data-testid={`active-operator-${index}`}>
-                    <span className="font-mono font-semibold text-muted-foreground">{operator.callsign}</span>
-                    <Link href={`/operator/${operator.callsign}`}>
-                      <span className="text-primary hover:underline cursor-pointer text-xs" data-testid={`entry-count-${index}`}>
-                        {operator.entryCount} {operator.entryCount === 1 ? 'log' : 'logs'}
-                      </span>
-                    </Link>
-                  </div>
-                ))}
+                {activeOperators.map((operator: any, index: number) => {
+                  const achievement = getAchievementIcon(operator.totalScore || 0);
+                  const AchievementIcon = achievement?.icon;
+                  
+                  return (
+                    <div key={operator.callsign} className="flex items-center justify-between text-sm" data-testid={`active-operator-${index}`}>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono font-semibold text-muted-foreground">{operator.callsign}</span>
+                        {achievement && AchievementIcon && (
+                          <span className="inline-flex items-center" data-testid={`active-operator-achievement-${index}`}>
+                            <AchievementIcon className={`h-3.5 w-3.5 ${achievement.color}`} />
+                            <span className="sr-only">{achievement.label}</span>
+                          </span>
+                        )}
+                      </div>
+                      <Link href={`/operator/${operator.callsign}`}>
+                        <span className="text-primary hover:underline cursor-pointer text-xs" data-testid={`entry-count-${index}`}>
+                          {operator.entryCount} {operator.entryCount === 1 ? 'log' : 'logs'}
+                        </span>
+                      </Link>
+                    </div>
+                  );
+                })}
                 {activeOperators.length === 0 && (
                   <p className="text-sm text-muted-foreground text-center py-2">No data yet</p>
                 )}
@@ -238,49 +274,36 @@ export default function HomePage() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-4">
-              <TabsList data-testid="tabs-leaderboard">
-                <TabsTrigger value="alltime" data-testid="tab-alltime">
-                  All-Time
-                </TabsTrigger>
-                <TabsTrigger value="current" data-testid="tab-current">
-                  {currentYear}
-                </TabsTrigger>
-                <TabsTrigger value="historical" data-testid="tab-historical">
-                  Historical
-                </TabsTrigger>
-              </TabsList>
-              
-              {activeTab === "historical" && (
-                <Select 
-                  value={selectedYear.toString()} 
-                  onValueChange={(value) => setSelectedYear(parseInt(value))}
-                >
-                  <SelectTrigger className="w-32" data-testid="select-year">
-                    <SelectValue placeholder="Select year" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {availableYears.map((year: number) => (
-                      <SelectItem key={year} value={year.toString()} data-testid={`option-year-${year}`}>
-                        {year}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            </div>
+          <div className="flex items-center gap-4 mb-6">
+            <TabsList data-testid="tabs-leaderboard">
+              <TabsTrigger value="alltime" data-testid="tab-alltime">
+                All-Time
+              </TabsTrigger>
+              <TabsTrigger value="current" data-testid="tab-current">
+                {currentYear}
+              </TabsTrigger>
+              <TabsTrigger value="historical" data-testid="tab-historical">
+                Historical
+              </TabsTrigger>
+            </TabsList>
             
-            <div className="flex items-center gap-6 text-xs text-muted-foreground" data-testid="achievement-legend">
-              <div className="flex items-center gap-2" data-testid="legend-trophy">
-                <Trophy className="h-3.5 w-3.5 text-yellow-500" />
-                <span>Elite Performer (5M+ points)</span>
-              </div>
-              <div className="flex items-center gap-2" data-testid="legend-medal">
-                <Medal className="h-3.5 w-3.5 text-yellow-500" />
-                <span>High Achiever (1M+ points)</span>
-              </div>
-            </div>
+            {activeTab === "historical" && (
+              <Select 
+                value={selectedYear.toString()} 
+                onValueChange={(value) => setSelectedYear(parseInt(value))}
+              >
+                <SelectTrigger className="w-32" data-testid="select-year">
+                  <SelectValue placeholder="Select year" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableYears.map((year: number) => (
+                    <SelectItem key={year} value={year.toString()} data-testid={`option-year-${year}`}>
+                      {year}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
 
           <TabsContent value="current" data-testid="content-current">

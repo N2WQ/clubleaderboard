@@ -535,6 +535,31 @@ export class DbStorage implements IStorage {
       .orderBy(desc(schema.submissions.submittedAt))
       .limit(limit);
 
+    // Return early if no results
+    if (results.length === 0) {
+      return [];
+    }
+
+    // Get total all-time points for each operator
+    const callsigns = results.map(r => r.memberCallsign);
+    const operatorTotals = await db
+      .select({
+        callsign: schema.operatorPoints.memberCallsign,
+        totalScore: sql<number>`CAST(ROUND(SUM(${schema.operatorPoints.normalizedPoints})) AS INTEGER)`.as('total_score'),
+      })
+      .from(schema.operatorPoints)
+      .innerJoin(schema.submissions, eq(schema.operatorPoints.submissionId, schema.submissions.id))
+      .where(
+        and(
+          eq(schema.submissions.isActive, true),
+          eq(schema.submissions.status, 'accepted'),
+          sql`${schema.operatorPoints.memberCallsign} IN ${callsigns}`
+        )
+      )
+      .groupBy(schema.operatorPoints.memberCallsign);
+
+    const totalsMap = new Map(operatorTotals.map(t => [t.callsign, Number(t.totalScore)]));
+
     return results.map(r => ({
       id: r.id,
       submissionId: r.submissionId,
@@ -543,6 +568,7 @@ export class DbStorage implements IStorage {
       contestKey: r.contestKey,
       seasonYear: r.seasonYear,
       submittedAt: r.submittedAt,
+      totalScore: totalsMap.get(r.memberCallsign) || 0,
     }));
   }
 
