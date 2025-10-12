@@ -167,7 +167,7 @@ export default function HomePage() {
                   return (
                     <div key={log.id} className="flex items-center justify-between text-sm" data-testid={`recent-log-${index}`}>
                       <span className="font-mono font-semibold text-muted-foreground" data-testid={`recent-log-callsign-${index}`}>{displayCallsign}</span>
-                      <Link href={`/contest/${log.contestKey}`}>
+                      <Link href={`/operator/${log.operatorCallsign}`}>
                         <span className="text-primary hover:underline cursor-pointer text-xs" data-testid={`recent-log-contest-${index}`}>{log.contestKey}</span>
                       </Link>
                     </div>
