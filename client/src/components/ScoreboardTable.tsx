@@ -73,13 +73,13 @@ export function ScoreboardTable({ entries }: ScoreboardTableProps) {
                   </span>
                 </TableCell>
                 <TableCell className="font-mono font-semibold" data-testid={`text-callsign-${entry.callsign}`}>
+                  {entry.callsign}
                   {achievement && AchievementIcon && (
-                    <span className="inline-flex items-center mr-2" data-testid={`achievement-${entry.callsign}`}>
+                    <span className="inline-flex items-center ml-2" data-testid={`achievement-${entry.callsign}`}>
                       <AchievementIcon className={`h-4 w-4 ${achievement.color}`} />
                       <span className="sr-only">{achievement.label}</span>
                     </span>
                   )}
-                  {entry.callsign}
                 </TableCell>
                 <TableCell className="text-right font-mono">
                   <Link href={`/submissions?callsign=${entry.callsign}`}>
