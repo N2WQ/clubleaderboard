@@ -147,12 +147,12 @@ export default function HomePage() {
       <main className="container mx-auto px-4 py-12">
         <div className="mb-12">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card className="p-6">
+            <Card className="p-6 flex flex-col">
               <div className="flex items-center gap-2 mb-4">
                 <Clock className="h-4 w-4 text-primary" />
                 <h4 className="text-sm font-semibold">Most Recent Logs</h4>
               </div>
-              <div className="space-y-2 mb-4">
+              <div className="space-y-2 mb-4 flex-1">
                 {recentLogs.map((log: any, index: number) => {
                   const displayCallsign = log.operatorCallsign === log.stationCallsign 
                     ? log.operatorCallsign 
@@ -177,12 +177,12 @@ export default function HomePage() {
               </div>
             </Card>
 
-            <Card className="p-6">
+            <Card className="p-6 flex flex-col">
               <div className="flex items-center gap-2 mb-4">
                 <Target className="h-4 w-4 text-primary" />
                 <h4 className="text-sm font-semibold">Most Active Operators</h4>
               </div>
-              <div className="space-y-2 mb-4">
+              <div className="space-y-2 mb-4 flex-1">
                 {activeOperators.map((operator: any, index: number) => (
                   <div key={operator.callsign} className="flex items-center justify-between text-sm" data-testid={`active-operator-${index}`}>
                     <span className="font-mono font-semibold text-muted-foreground">{operator.callsign}</span>
@@ -206,12 +206,12 @@ export default function HomePage() {
               </div>
             </Card>
 
-            <Card className="p-6">
+            <Card className="p-6 flex flex-col">
               <div className="flex items-center gap-2 mb-4">
                 <Trophy className="h-4 w-4 text-primary" />
                 <h4 className="text-sm font-semibold">Most Competitive Contests</h4>
               </div>
-              <div className="space-y-2 mb-4">
+              <div className="space-y-2 mb-4 flex-1">
                 {competitiveContests.map((contest: any, index: number) => (
                   <div key={contest.contestKey} className="flex items-center justify-between text-sm" data-testid={`competitive-contest-${index}`}>
                     <span className="font-mono font-semibold text-muted-foreground text-xs">{contest.contestKey}</span>
