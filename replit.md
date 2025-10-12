@@ -55,7 +55,7 @@ This project is an automated scoring system for the Yankee Clipper Contest Club 
 - **Achievement Icons**: Insight boxes (Most Recent Logs and Most Active Operators) display achievement icons next to operator callsigns based on all-time total YCCC points:
   - **Trophy icon** (gold) for operators with 5M+ points - "Elite Performer"
   - **Medal icon** (gold) for operators with 1M-5M points - "High Achiever"
-  - **Runner icon (UserRound)** (gold) for operators with 500K-1M points - "Runner Up"
+  - **Star icon** (gold) for operators with 500K-1M points - "Runner Up"
   - Icons use Lucide React components in gold/yellow color (text-yellow-500) with accessible screen-reader labels, positioned after callsign in insight boxes only (not on leaderboard tables).
 
 ### Database Schema
