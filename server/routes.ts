@@ -302,6 +302,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/submission/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const submission = await storage.getSubmissionDetails(id);
+      
+      if (!submission) {
+        return res.status(404).json({ error: "Submission not found" });
+      }
+      
+      res.json(submission);
+    } catch (error) {
+      console.error("Submission detail error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   app.get("/api/operator/:callsign", async (req, res) => {
     try {
       const callsign = req.params.callsign.toUpperCase();

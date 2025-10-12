@@ -30,6 +30,7 @@ export interface IStorage {
 
   createSubmission(submission: InsertSubmission): Promise<Submission>;
   getSubmission(id: number): Promise<Submission | undefined>;
+  getSubmissionDetails(id: number): Promise<any>;
   getActiveSubmissionsByContest(seasonYear: number, contestKey: string): Promise<Submission[]>;
   deactivateSubmission(callsign: string, contestKey: string, seasonYear: number): Promise<void>;
   getSeasonLeaderboard(seasonYear: number): Promise<any[]>;
@@ -113,6 +114,29 @@ export class DbStorage implements IStorage {
   async getSubmission(id: number): Promise<Submission | undefined> {
     const result = await db.select().from(schema.submissions).where(eq(schema.submissions.id, id)).limit(1);
     return result[0];
+  }
+
+  async getSubmissionDetails(id: number): Promise<any> {
+    // Get submission details with operator points
+    const submission = await db.select().from(schema.submissions).where(eq(schema.submissions.id, id)).limit(1);
+    if (!submission[0]) {
+      return null;
+    }
+
+    const operators = await db
+      .select({
+        id: schema.operatorPoints.id,
+        memberCallsign: schema.operatorPoints.memberCallsign,
+        individualClaimed: schema.operatorPoints.individualClaimed,
+        normalizedPoints: schema.operatorPoints.normalizedPoints,
+      })
+      .from(schema.operatorPoints)
+      .where(eq(schema.operatorPoints.submissionId, id));
+
+    return {
+      ...submission[0],
+      operators,
+    };
   }
 
   async getActiveSubmissionsByContest(seasonYear: number, contestKey: string): Promise<Submission[]> {
