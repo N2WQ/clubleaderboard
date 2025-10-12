@@ -1,6 +1,6 @@
 import { ScoreboardTable } from "@/components/ScoreboardTable";
 import { StatCard } from "@/components/StatCard";
-import { Users, Radio, Upload, Trophy, Target, Clock, Medal, UserRound } from "lucide-react";
+import { Users, Radio, Upload, Trophy, Target, Clock, Medal, Award } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
@@ -18,7 +18,7 @@ const getAchievementIcon = (totalScore: number) => {
   } else if (totalScore >= 1000000) {
     return { icon: Medal, label: "High Achiever - 1M+ points", color: "text-yellow-500" };
   } else if (totalScore >= 500000) {
-    return { icon: UserRound, label: "Runner Up - 500K+ points", color: "text-yellow-500" };
+    return { icon: Award, label: "Runner Up - 500K+ points", color: "text-yellow-500" };
   }
   return null;
 };
