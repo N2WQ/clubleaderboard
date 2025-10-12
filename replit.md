@@ -47,15 +47,16 @@ This project is an automated scoring system for the Yankee Clipper Contest Club 
 - **Email Confirmations**: Optional email confirmation system using Gmail integration. Upload form includes email field; when provided, sends professional HTML confirmation email upon successful log acceptance. Email addresses are not stored - only used for immediate notification. System gracefully handles email failures without blocking submissions.
 
 ### UI/UX Decisions
-- **Layout**: Clean, minimal design with tabs for different leaderboard views (e.g., "2025 Season", "All-Time", "Historical").
+- **Layout**: Clean, minimal design with tabs for different leaderboard views ordered as: All-Time (default), Current Year, Historical.
 - **Information Density**: Focuses on displaying key data clearly, with clickable elements for detailed views. Homepage features streamlined 2-card layout combining stats with top performer lists.
 - **Branding**: Renamed to "YCCC Awards Program" to reflect a broader scope.
 - **Homepage Cards**: Two combined cards - (1) Active Members + Most Active Operators, (2) Contests Tracked + Most Competitive Contests. Each card has clickable stat area with navigation and informational list below.
-- **Leaderboard Summary**: Displays contextual message showing member count and total logs submitted (e.g., "Showing 10 members by YCCC points who have submitted a total of 42 logs"). Updates dynamically for current season, all-time, and historical views.
+- **Leaderboard Display**: Clean tabbed interface without summary text. All-Time tab is the default view. Achievement legend displayed alongside tabs explaining icon meanings.
 - **Achievement Icons**: Leaderboards display achievement icons next to operator callsigns based on total YCCC points:
   - **Trophy icon** (gold) for operators with 5M+ points - "Elite Performer"
   - **Medal icon** (gold) for operators with 1M-5M points - "High Achiever"
-  - Icons use Lucide React components in gold/yellow color with accessible screen-reader labels, positioned after callsign on all leaderboard views (current year, all-time, historical).
+  - Icons use Lucide React components in gold/yellow color (text-yellow-500) with accessible screen-reader labels, positioned after callsign on all leaderboard views (current year, all-time, historical).
+  - **Achievement Legend**: Displayed on right side of tabs with both icon symbols and descriptions for easy reference.
 
 ### Database Schema
 - **members**: Stores callsign, active status, aliases, names, and dues expiration.
