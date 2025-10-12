@@ -39,7 +39,7 @@ const ACHIEVEMENTS: Achievement[] = [
     threshold: 1000000, 
     icon: Medal, 
     label: "High Achiever - 1M+ points",
-    color: "text-blue-500"
+    color: "text-yellow-500"
   },
 ];
 
