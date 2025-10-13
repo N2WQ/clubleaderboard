@@ -226,6 +226,9 @@ export default function AdminPage() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/leaderboard"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/contests"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/insights/competitive-contests"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
       toast({
         title: "Import Complete",
         description: data.message || `Successfully imported ${data.count} submissions`,
