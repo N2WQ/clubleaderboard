@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Radio, Upload, Users, Settings, FileText } from "lucide-react";
+import { Radio, Upload, Users, Settings, FileText, FileSpreadsheet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,6 +21,9 @@ export default function AdminPage() {
   const [rosterFile, setRosterFile] = useState<File | null>(null);
   const [emailCallsign, setEmailCallsign] = useState("");
   const [emailAddress, setEmailAddress] = useState("");
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [contestName, setContestName] = useState("");
+  const [contestYear, setContestYear] = useState(new Date().getFullYear().toString());
   const { toast } = useToast();
   const currentYear = new Date().getFullYear();
 
@@ -192,9 +195,52 @@ export default function AdminPage() {
     },
   });
 
+  const importCsvMutation = useMutation({
+    mutationFn: async (data: { file: File; contestName: string; contestYear: string }) => {
+      const formData = new FormData();
+      formData.append("file", data.file);
+      formData.append("contestName", data.contestName);
+      formData.append("contestYear", data.contestYear);
+      
+      const res = await fetch("/api/admin/import-csv", {
+        method: "POST",
+        body: formData,
+      });
+      
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Import failed");
+      }
+      
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/leaderboard"] });
+      toast({
+        title: "Import Complete",
+        description: data.message || `Successfully imported ${data.count} submissions`,
+      });
+      setCsvFile(null);
+      setContestName("");
+    },
+    onError: (error: Error) => {
+      toast({
+        variant: "destructive",
+        title: "Import Failed",
+        description: error.message,
+      });
+    },
+  });
+
   const handleRosterUpload = () => {
     if (rosterFile) {
       uploadRosterMutation.mutate(rosterFile);
+    }
+  };
+
+  const handleCsvImport = () => {
+    if (csvFile && contestName && contestYear) {
+      importCsvMutation.mutate({ file: csvFile, contestName, contestYear });
     }
   };
 
@@ -253,6 +299,9 @@ export default function AdminPage() {
             </TabsTrigger>
             <TabsTrigger value="roster" data-testid="tab-roster">
               Member Roster
+            </TabsTrigger>
+            <TabsTrigger value="import" data-testid="tab-import">
+              Import CSV
             </TabsTrigger>
             <TabsTrigger value="settings" data-testid="tab-settings">
               Settings
@@ -344,6 +393,86 @@ export default function AdminPage() {
                   <p className="text-sm text-muted-foreground">Last Updated</p>
                   <p className="text-2xl font-semibold">Jan 1, 2025</p>
                 </div>
+              </div>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="import" className="space-y-6">
+            <Card className="p-6">
+              <h3 className="text-xl font-semibold mb-4">Import Historical Contest Data</h3>
+              <p className="text-sm text-muted-foreground mb-6">
+                Import contest results from sponsor CSV files. Format: Station, Category, Mode (PH/CW), Score, Operators
+              </p>
+
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="contest-name">Contest Name</Label>
+                  <Input
+                    id="contest-name"
+                    type="text"
+                    placeholder="e.g., CQWWDX"
+                    value={contestName}
+                    onChange={(e) => setContestName(e.target.value)}
+                    data-testid="input-contest-name"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    This will be used as the contest identifier (same as CONTEST field in Cabrillo)
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="contest-year">Contest Year</Label>
+                  <Input
+                    id="contest-year"
+                    type="number"
+                    placeholder="2024"
+                    value={contestYear}
+                    onChange={(e) => setContestYear(e.target.value)}
+                    data-testid="input-contest-year"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="csv-file">CSV File</Label>
+                  <Input
+                    id="csv-file"
+                    type="file"
+                    accept=".csv"
+                    onChange={(e) => setCsvFile(e.target.files?.[0] || null)}
+                    data-testid="input-csv-file"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Expected format: Station, Category, Mode, Score, Operators
+                  </p>
+                </div>
+
+                {csvFile && (
+                  <div className="p-4 rounded-lg bg-muted">
+                    <p className="text-sm font-medium">Selected: {csvFile.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {(csvFile.size / 1024).toFixed(2)} KB
+                    </p>
+                  </div>
+                )}
+
+                <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                  <p className="text-sm font-medium text-blue-600 dark:text-blue-400">Import Notes</p>
+                  <ul className="text-xs text-muted-foreground mt-2 space-y-1">
+                    <li>• PH mode will be automatically mapped to SSB</li>
+                    <li>• Operators will be validated against current roster</li>
+                    <li>• Only operators with current dues will be scored</li>
+                    <li>• Duplicate submissions will deactivate previous entries</li>
+                  </ul>
+                </div>
+
+                <Button
+                  onClick={handleCsvImport}
+                  disabled={!csvFile || !contestName || !contestYear || importCsvMutation.isPending}
+                  data-testid="button-import-csv"
+                >
+                  <FileSpreadsheet className="h-4 w-4 mr-2" />
+                  {importCsvMutation.isPending ? "Importing..." : "Import CSV"}
+                </Button>
               </div>
             </Card>
           </TabsContent>
