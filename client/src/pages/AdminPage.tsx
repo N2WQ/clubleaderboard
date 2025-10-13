@@ -669,18 +669,6 @@ export default function AdminPage() {
                 </Button>
               </div>
             </Card>
-
-            <Card className="p-6">
-              <h3 className="text-xl font-semibold mb-4">Rebuild Scoreboard</h3>
-              <p className="text-sm text-muted-foreground mb-6">
-                Force regeneration of all static HTML pages
-              </p>
-
-              <Button variant="outline" data-testid="button-rebuild">
-                <Settings className="h-4 w-4 mr-2" />
-                Rebuild All Pages
-              </Button>
-            </Card>
           </TabsContent>
         </Tabs>
       </main>
