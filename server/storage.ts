@@ -604,6 +604,25 @@ export class DbStorage implements IStorage {
     
     return results;
   }
+
+  async getContestYears(contestKey: string): Promise<number[]> {
+    const results = await db
+      .select({
+        contestYear: schema.submissions.contestYear,
+      })
+      .from(schema.submissions)
+      .where(
+        and(
+          eq(schema.submissions.contestKey, contestKey),
+          eq(schema.submissions.isActive, true),
+          eq(schema.submissions.status, "accepted")
+        )
+      )
+      .groupBy(schema.submissions.contestYear)
+      .orderBy(desc(schema.submissions.contestYear));
+    
+    return results.map(r => r.contestYear);
+  }
 }
 
 export const storage = new DbStorage();

@@ -434,11 +434,11 @@ export default function AdminPage() {
                     <SelectContent>
                       {availableContests.map((contest: any) => (
                         <SelectItem 
-                          key={`${contest.contestKey}-${contest.seasonYear}`} 
-                          value={`${contest.contestKey}|${contest.seasonYear}`}
-                          data-testid={`option-contest-${contest.contestKey}-${contest.seasonYear}`}
+                          key={`${contest.contestKey}-${contest.contestYear}`} 
+                          value={`${contest.contestKey}|${contest.contestYear}`}
+                          data-testid={`option-contest-${contest.contestKey}-${contest.contestYear}`}
                         >
-                          {contest.contestKey} ({contest.seasonYear})
+                          {contest.contestKey} ({contest.contestYear})
                         </SelectItem>
                       ))}
                     </SelectContent>
