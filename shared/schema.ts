@@ -34,8 +34,6 @@ export const submissions = pgTable("submissions", {
   totalOperators: integer("total_operators").notNull().default(1),
   effectiveOperators: integer("effective_operators").notNull(),
   club: text("club"),
-  status: text("status").notNull(),
-  rejectReason: text("reject_reason"),
   submittedAt: timestamp("submitted_at").notNull().defaultNow(),
   isActive: boolean("is_active").notNull().default(true),
 }, (table) => ({
@@ -43,11 +41,9 @@ export const submissions = pgTable("submissions", {
   seasonYearIdx: index("submissions_season_year_idx").on(table.seasonYear),
   contestKeyIdx: index("submissions_contest_key_idx").on(table.contestKey),
   callsignIdx: index("submissions_callsign_idx").on(table.callsign),
-  statusIdx: index("submissions_status_idx").on(table.status),
   isActiveIdx: index("submissions_is_active_idx").on(table.isActive),
   // Composite indexes for common query patterns
   seasonContestIdx: index("submissions_season_contest_idx").on(table.seasonYear, table.contestKey),
-  activeStatusIdx: index("submissions_active_status_idx").on(table.isActive, table.status),
 }));
 
 export const baselines = pgTable("baselines", {
@@ -92,8 +88,6 @@ export const insertSubmissionSchema = z.object({
   totalOperators: z.number(),
   effectiveOperators: z.number(),
   club: z.string().optional(),
-  status: z.string(),
-  rejectReason: z.string().optional(),
 });
 export const insertRawLogSchema = z.object({
   submissionId: z.number().optional(),
