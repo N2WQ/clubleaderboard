@@ -29,8 +29,8 @@ export async function calculateMaxPoints(
   const uniqueOperators = new Set<string>();
   for (const sub of acceptedSubmissions) {
     if (sub.memberOperators) {
-      const operators = sub.memberOperators.split(',').map(op => op.trim());
-      operators.forEach(op => uniqueOperators.add(op));
+      const operators = sub.memberOperators.split(',').map((op: string) => op.trim());
+      operators.forEach((op: string) => uniqueOperators.add(op));
     }
   }
   
