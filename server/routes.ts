@@ -267,31 +267,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/contest/:key", async (req, res) => {
     try {
       const { key } = req.params;
-      let seasonYear = parseInt(req.query.year as string) || undefined;
+      const yearParam = req.query.year as string;
       
-      // If no year provided, find the most recent year with submissions for this contest
-      if (!seasonYear) {
-        // Query submissions directly from database to find years
+      if (yearParam) {
+        // Year specified - return only that year
+        const seasonYear = parseInt(yearParam);
+        const results = await storage.getContestResults(key.toUpperCase(), seasonYear);
+        const baseline = await storage.getBaseline(seasonYear, key.toUpperCase());
+
+        res.json({
+          contestKey: key.toUpperCase(),
+          seasonYear,
+          baseline: baseline?.highestSingleClaimed || 0,
+          results,
+        });
+      } else {
+        // No year specified - return all years combined
         const contestYears = await storage.getContestYears(key.toUpperCase());
         
-        if (contestYears.length > 0) {
-          // Get the most recent year
-          seasonYear = Math.max(...contestYears);
-        } else {
-          // No submissions found, default to current year
-          seasonYear = currentYear;
+        if (contestYears.length === 0) {
+          return res.json({
+            contestKey: key.toUpperCase(),
+            seasonYear: null,
+            baseline: 0,
+            results: [],
+          });
         }
-      }
-      
-      const results = await storage.getContestResults(key.toUpperCase(), seasonYear);
-      const baseline = await storage.getBaseline(seasonYear, key.toUpperCase());
 
-      res.json({
-        contestKey: key.toUpperCase(),
-        seasonYear,
-        baseline: baseline?.highestSingleClaimed || 0,
-        results,
-      });
+        // Fetch results from all years and combine them
+        const allResults = [];
+        for (const year of contestYears) {
+          const yearResults = await storage.getContestResults(key.toUpperCase(), year);
+          allResults.push(...yearResults);
+        }
+
+        res.json({
+          contestKey: key.toUpperCase(),
+          seasonYear: null, // null indicates all years
+          baseline: 0, // No single baseline for all years
+          results: allResults,
+        });
+      }
     } catch (error) {
       console.error("Contest detail error:", error);
       res.status(500).json({ error: "Internal server error" });

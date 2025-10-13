@@ -53,13 +53,18 @@ export default function ContestDetailPage() {
           <>
             <div className="mb-8">
               <ContestBadge contest={contestKey} />
-              <h2 className="text-3xl font-bold mt-4 mb-6">Contest Results</h2>
+              <h2 className="text-3xl font-bold mt-4 mb-6">
+                Contest Results
+                {data?.seasonYear ? ` - ${data.seasonYear}` : ' - All Years'}
+              </h2>
 
               <div className="mb-8">
                 <Card className="p-6 max-w-sm">
                   <div className="flex items-center gap-3 mb-2">
                     <Users className="h-5 w-5 text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground">Participants</p>
+                    <p className="text-sm text-muted-foreground">
+                      {data?.seasonYear ? 'Participants' : 'Total Participants (All Years)'}
+                    </p>
                   </div>
                   <p className="text-xl font-semibold" data-testid="text-participants">{participants}</p>
                 </Card>
@@ -68,7 +73,9 @@ export default function ContestDetailPage() {
 
             <div>
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-2xl font-semibold">All Submissions</h3>
+                <h3 className="text-2xl font-semibold">
+                  {data?.seasonYear ? `${data.seasonYear} Submissions` : 'All Submissions'}
+                </h3>
                 <p className="text-sm text-muted-foreground">
                   YCCC Points to 1M maximum
                 </p>
