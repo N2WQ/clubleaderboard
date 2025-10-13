@@ -469,6 +469,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "CSV file is empty or invalid" });
       }
 
+      if (parsed.errors && parsed.errors.length > 0) {
+        console.error("CSV parsing errors:", parsed.errors);
+        return res.status(400).json({ 
+          error: `CSV parsing failed: ${parsed.errors[0].message}` 
+        });
+      }
+
       let importedCount = 0;
       let skippedCount = 0;
       const results = [];
@@ -592,7 +599,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error("CSV import error:", error);
-      res.status(500).json({ error: "Failed to import CSV file" });
+      const errorMessage = error instanceof Error ? error.message : "Failed to import CSV file";
+      res.status(500).json({ error: `CSV import failed: ${errorMessage}` });
     }
   });
 
