@@ -503,6 +503,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let importedCount = 0;
       let skippedCount = 0;
       const results = [];
+      const importedSubmissionIds: number[] = []; // Track imported submissions for batch point calculation
 
       // Process each row
       for (let i = 0; i < (parsed.data as any[]).length; i++) {
@@ -583,35 +584,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
           rejectReason: validation.valid ? undefined : validation.error,
         });
 
-        // Create operator points if we have valid members
-        if (validation.valid && validation.memberOperators && validation.memberOperators.length > 0) {
-          await recomputeBaseline(contestYear, contestKey);
-          
-          const baseline = await storage.getBaseline(contestYear, contestKey);
-          const individualClaimed = claimedScore / totalOperators;
-          
-          const maxPoints = await calculateMaxPoints(contestYear, contestKey);
-          const normalizedPoints = baseline?.highestSingleClaimed 
-            ? (individualClaimed / baseline.highestSingleClaimed) * maxPoints
-            : maxPoints;
-
-          for (const operator of validation.memberOperators) {
-            await storage.createOperatorPoints({
-              submissionId: submission.id,
-              memberCallsign: operator,
-              individualClaimed: Math.round(individualClaimed),
-              normalizedPoints: Math.round(normalizedPoints),
-            });
-          }
+        importedSubmissionIds.push(submission.id); // Track for batch processing
+        importedCount++;
+        results.push({ station, category, mode: assignedMode, score: claimedScore, operators: operatorList.length });
+        
+        // Log progress every 10 rows
+        if (importedCount % 10 === 0) {
+          console.log(`CSV import progress: ${importedCount} rows processed...`);
         }
-
-          importedCount++;
-          results.push({ station, category, mode: assignedMode, score: claimedScore, operators: operatorList.length });
         } catch (rowError) {
           console.error(`Error processing row ${i}:`, rowError, row);
           // Continue to next row on error
         }
       }
+
+      console.log(`CSV import: Processing complete. ${importedCount} submissions created. Now recomputing baselines and operator points...`);
+      
+      // OPTIMIZATION: Recompute baseline ONCE after all submissions are created
+      await recomputeBaseline(contestYear, contestKey);
+      const baseline = await storage.getBaseline(contestYear, contestKey);
+      const maxPoints = await calculateMaxPoints(contestYear, contestKey);
+      
+      // Now create operator points ONLY for the submissions we just imported
+      const allSubmissions = await storage.getActiveSubmissionsByContest(contestYear, contestKey);
+      const importedSubmissions = allSubmissions.filter(sub => importedSubmissionIds.includes(sub.id));
+      
+      let pointsCreated = 0;
+      for (const sub of importedSubmissions) {
+        if (sub.status === 'accepted' && sub.memberOperators) {
+          const memberOps = sub.memberOperators.split(',').filter(op => op.length > 0);
+          const individualClaimed = sub.claimedScore / sub.totalOperators;
+          const normalizedPoints = baseline?.highestSingleClaimed 
+            ? (individualClaimed / baseline.highestSingleClaimed) * maxPoints
+            : maxPoints;
+
+          for (const operator of memberOps) {
+            await storage.createOperatorPoints({
+              submissionId: sub.id,
+              memberCallsign: operator,
+              individualClaimed: Math.round(individualClaimed),
+              normalizedPoints: Math.round(normalizedPoints),
+            });
+            pointsCreated++;
+          }
+        }
+      }
+      
+      console.log(`CSV import: Created ${pointsCreated} operator point records for ${importedSubmissions.length} submissions`);
 
       // Broadcast update
       broadcast("submission:created", {
