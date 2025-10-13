@@ -448,6 +448,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/admin/import-csv", upload.single("file"), async (req, res) => {
     try {
+      console.log("CSV import request received:", {
+        file: req.file?.originalname,
+        contestKey: req.body.contestKey,
+        contestYear: req.body.contestYear,
+        mode: req.body.mode
+      });
+
       if (!req.file) {
         return res.status(400).json({ error: "No file uploaded" });
       }
@@ -457,6 +464,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const assignedMode = req.body.mode?.trim().toUpperCase();
 
       if (!contestKey || !contestYear || !assignedMode) {
+        console.error("Missing required fields:", { contestKey, contestYear, assignedMode });
         return res.status(400).json({ error: "Contest key, year, and mode are required" });
       }
 
