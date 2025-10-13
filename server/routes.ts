@@ -170,6 +170,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/contests", async (req, res) => {
+    try {
+      const contests = await storage.getAllContests();
+      res.json({ contests });
+    } catch (error) {
+      console.error("Contests error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   app.get("/api/leaderboard", async (req, res) => {
     try {
       const type = req.query.type as string || "season";
