@@ -20,14 +20,13 @@ export async function calculateMaxPoints(
     return 1000000;
   }
   
-  // participant-based: count unique member operators across all accepted submissions
+  // participant-based: count unique member operators across all submissions
   // Use cached submissions if provided to avoid duplicate query
   const submissions = cachedSubmissions || await storage.getActiveSubmissionsByContest(seasonYear, contestKey);
-  const acceptedSubmissions = submissions.filter(s => s.status === 'accepted');
   
   // Collect all unique member operators
   const uniqueOperators = new Set<string>();
-  for (const sub of acceptedSubmissions) {
+  for (const sub of submissions) {
     if (sub.memberOperators) {
       const operators = sub.memberOperators.split(',').map((op: string) => op.trim());
       operators.forEach((op: string) => uniqueOperators.add(op));
@@ -38,7 +37,7 @@ export async function calculateMaxPoints(
   
   // Fallback: if no participants found (e.g., first submission or data inconsistency),
   // use the submission count or minimum of 1 to avoid zero max points
-  const effectiveParticipantCount = participantCount > 0 ? participantCount : Math.max(acceptedSubmissions.length, 1);
+  const effectiveParticipantCount = participantCount > 0 ? participantCount : Math.max(submissions.length, 1);
   
   // 50,000 points per participant, max 1,000,000
   return Math.min(effectiveParticipantCount * 50000, 1000000);
@@ -178,15 +177,14 @@ export async function recomputeBaseline(
 ): Promise<void> {
   // Use cached submissions if provided to avoid duplicate query
   const submissions = cachedSubmissions || await storage.getActiveSubmissionsByContest(seasonYear, contestKey);
-  const acceptedSubmissions = submissions.filter(s => s.status === 'accepted');
   
-  if (acceptedSubmissions.length === 0) {
+  if (submissions.length === 0) {
     return;
   }
 
   // Pass submissions to avoid re-querying for participant-based scoring
-  const maxPoints = await calculateMaxPoints(seasonYear, contestKey, acceptedSubmissions);
-  const singleOpSubmissions = acceptedSubmissions.filter(s => s.effectiveOperators === 1);
+  const maxPoints = await calculateMaxPoints(seasonYear, contestKey, submissions);
+  const singleOpSubmissions = submissions.filter(s => s.effectiveOperators === 1);
   
   let maxScore: number;
   if (singleOpSubmissions.length > 0) {
@@ -198,7 +196,7 @@ export async function recomputeBaseline(
     });
   } else {
     // No single-op baseline yet, use max individual claimed as provisional baseline
-    maxScore = Math.max(...acceptedSubmissions.map(s => s.claimedScore / s.totalOperators));
+    maxScore = Math.max(...submissions.map(s => s.claimedScore / s.totalOperators));
   }
 
   // OPTIMIZATION: Delete all operator points for contest at once, then batch insert
@@ -206,7 +204,7 @@ export async function recomputeBaseline(
   
   // Build array of all operator points to insert
   const operatorPointsToInsert: any[] = [];
-  for (const sub of acceptedSubmissions) {
+  for (const sub of submissions) {
     const memberOps = sub.memberOperators?.split(',') || [];
     const individualClaimed = sub.claimedScore / sub.totalOperators;
     const normalizedPoints = (individualClaimed / maxScore) * maxPoints;

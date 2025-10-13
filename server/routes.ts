@@ -89,8 +89,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         totalOperators,
         effectiveOperators: validation.effectiveOperators || 1,
         club: data.club,
-        status: "accepted",
-        rejectReason: undefined,
       });
 
       await storage.createRawLog({
@@ -624,8 +622,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           totalOperators,
           effectiveOperators,
           club: 'Yankee Clipper Contest Club',
-          status: "accepted", // Accept all for historical import
-          rejectReason: undefined,
         });
 
         importedSubmissionIds.push(submission.id); // Track for batch processing

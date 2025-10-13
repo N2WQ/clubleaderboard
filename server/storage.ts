@@ -175,12 +175,7 @@ export class DbStorage implements IStorage {
       })
       .from(schema.operatorPoints)
       .innerJoin(schema.submissions, eq(schema.operatorPoints.submissionId, schema.submissions.id))
-      .where(
-        and(
-          eq(schema.submissions.seasonYear, seasonYear),
-          eq(schema.submissions.status, "accepted")
-        )
-      )
+      .where(eq(schema.submissions.seasonYear, seasonYear))
       .groupBy(schema.operatorPoints.memberCallsign)
       .orderBy(desc(sql`ROUND(SUM(${schema.operatorPoints.normalizedPoints}))`));
 
@@ -215,7 +210,7 @@ export class DbStorage implements IStorage {
       })
       .from(schema.operatorPoints)
       .innerJoin(schema.submissions, eq(schema.operatorPoints.submissionId, schema.submissions.id))
-      .where(eq(schema.submissions.status, "accepted"))
+      .where(sql`1=1`)
       .groupBy(schema.operatorPoints.memberCallsign)
       .orderBy(desc(sql`ROUND(SUM(${schema.operatorPoints.normalizedPoints}))`));
 
@@ -262,8 +257,7 @@ export class DbStorage implements IStorage {
       .where(
         and(
           eq(schema.operatorPoints.memberCallsign, callsign),
-          eq(schema.submissions.seasonYear, seasonYear),
-          eq(schema.submissions.status, "accepted")
+          eq(schema.submissions.seasonYear, seasonYear)
         )
       )
       .orderBy(desc(schema.submissions.submittedAt));
@@ -278,7 +272,6 @@ export class DbStorage implements IStorage {
         claimedScore: schema.submissions.claimedScore,
         totalOperators: schema.submissions.totalOperators,
         effectiveOperators: schema.submissions.effectiveOperators,
-        status: schema.submissions.status,
         submittedAt: schema.submissions.submittedAt,
         individualClaimed: sql<number>`MAX(${schema.operatorPoints.individualClaimed})`.as('individualClaimed'),
         normalizedPoints: sql<number>`ROUND(MAX(${schema.operatorPoints.normalizedPoints}))`.as('normalizedPoints'),
@@ -300,7 +293,6 @@ export class DbStorage implements IStorage {
         schema.submissions.claimedScore,
         schema.submissions.totalOperators,
         schema.submissions.effectiveOperators,
-        schema.submissions.status,
         schema.submissions.submittedAt
       )
       .orderBy(desc(schema.submissions.claimedScore));
@@ -314,8 +306,7 @@ export class DbStorage implements IStorage {
 
   async getAllSubmissions(seasonYear: number | undefined, memberCallsign?: string): Promise<any[]> {
     const conditions = [
-      eq(schema.submissions.isActive, true),
-      eq(schema.submissions.status, "accepted")
+      eq(schema.submissions.isActive, true)
     ];
 
     if (seasonYear !== undefined) {
@@ -338,7 +329,6 @@ export class DbStorage implements IStorage {
         individualClaimed: schema.operatorPoints.individualClaimed,
         normalizedPoints: sql<number>`ROUND(${schema.operatorPoints.normalizedPoints})`,
         submittedAt: schema.submissions.submittedAt,
-        status: schema.submissions.status,
       })
       .from(schema.submissions)
       .innerJoin(schema.operatorPoints, eq(schema.submissions.id, schema.operatorPoints.submissionId))
@@ -428,8 +418,7 @@ export class DbStorage implements IStorage {
     }).from(schema.submissions)
       .where(and(
         eq(schema.submissions.seasonYear, seasonYear),
-        eq(schema.submissions.isActive, true),
-        eq(schema.submissions.status, 'accepted')
+        eq(schema.submissions.isActive, true)
       ));
 
     const activeCallsigns = new Set<string>();
@@ -445,8 +434,7 @@ export class DbStorage implements IStorage {
     }).from(schema.submissions)
       .where(and(
         eq(schema.submissions.seasonYear, seasonYear),
-        eq(schema.submissions.isActive, true),
-        eq(schema.submissions.status, 'accepted')
+        eq(schema.submissions.isActive, true)
       ))
       .groupBy(schema.submissions.contestKey)
       .orderBy(schema.submissions.contestKey);
@@ -467,10 +455,7 @@ export class DbStorage implements IStorage {
       contestKey: schema.submissions.contestKey,
       submissionCount: sql<number>`CAST(COUNT(DISTINCT ${schema.submissions.id}) AS INTEGER)`.as('submission_count'),
     }).from(schema.submissions)
-      .where(and(
-        eq(schema.submissions.isActive, true),
-        eq(schema.submissions.status, 'accepted')
-      ))
+      .where(eq(schema.submissions.isActive, true))
       .groupBy(schema.submissions.contestKey)
       .orderBy(schema.submissions.contestKey);
 
@@ -484,8 +469,7 @@ export class DbStorage implements IStorage {
     // Get contests with most submissions for specific year or all-time
     // Include all contests that tie with the 5th highest submission count
     const whereConditions = [
-      eq(schema.submissions.isActive, true),
-      eq(schema.submissions.status, 'accepted')
+      eq(schema.submissions.isActive, true)
     ];
     
     if (seasonYear) {
@@ -522,8 +506,7 @@ export class DbStorage implements IStorage {
     // Get operators with most submitted logs for specific year or all-time
     // Include all operators that tie with the 5th highest entry count
     const whereConditions = [
-      eq(schema.submissions.isActive, true),
-      eq(schema.submissions.status, 'accepted')
+      eq(schema.submissions.isActive, true)
     ];
     
     if (seasonYear) {
@@ -570,12 +553,7 @@ export class DbStorage implements IStorage {
       })
       .from(schema.operatorPoints)
       .innerJoin(schema.submissions, eq(schema.operatorPoints.submissionId, schema.submissions.id))
-      .where(
-        and(
-          eq(schema.submissions.isActive, true),
-          eq(schema.submissions.status, 'accepted')
-        )
-      )
+      .where(eq(schema.submissions.isActive, true))
       .orderBy(desc(schema.submissions.submittedAt))
       .limit(limit);
 
@@ -596,7 +574,6 @@ export class DbStorage implements IStorage {
       .where(
         and(
           eq(schema.submissions.isActive, true),
-          eq(schema.submissions.status, 'accepted'),
           sql`${schema.operatorPoints.memberCallsign} IN ${callsigns}`
         )
       )
@@ -655,12 +632,7 @@ export class DbStorage implements IStorage {
         contestKey: schema.submissions.contestKey,
       })
       .from(schema.submissions)
-      .where(
-        and(
-          eq(schema.submissions.isActive, true),
-          eq(schema.submissions.status, "accepted")
-        )
-      )
+      .where(eq(schema.submissions.isActive, true))
       .orderBy(schema.submissions.contestKey);
     
     return results.map(r => r.contestKey);
@@ -675,8 +647,7 @@ export class DbStorage implements IStorage {
       .where(
         and(
           eq(schema.submissions.contestKey, contestKey),
-          eq(schema.submissions.isActive, true),
-          eq(schema.submissions.status, "accepted")
+          eq(schema.submissions.isActive, true)
         )
       )
       .groupBy(schema.submissions.contestYear)
