@@ -411,6 +411,146 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/admin/import-csv", upload.single("file"), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+
+      const contestName = req.body.contestName?.trim();
+      const contestYear = parseInt(req.body.contestYear);
+
+      if (!contestName || !contestYear) {
+        return res.status(400).json({ error: "Contest name and year are required" });
+      }
+
+      const content = req.file.buffer.toString('utf-8');
+      const parsed = Papa.parse(content, { 
+        skipEmptyLines: true 
+      });
+
+      if (!parsed.data || parsed.data.length === 0) {
+        return res.status(400).json({ error: "CSV file is empty or invalid" });
+      }
+
+      let importedCount = 0;
+      const results = [];
+
+      // Process each row
+      for (const row of parsed.data as any[]) {
+        if (!row || row.length < 4) continue;
+
+        const station = row[0]?.trim().toUpperCase();
+        const category = row[1]?.trim();
+        let mode = row[2]?.trim().toUpperCase();
+        const scoreStr = row[3]?.toString().replace(/,/g, '').trim();
+        const operatorsStr = row[4]?.trim() || '';
+
+        if (!station || !category || !mode || !scoreStr) continue;
+
+        // Map PH to SSB
+        if (mode === 'PH') {
+          mode = 'SSB';
+        }
+
+        const claimedScore = parseInt(scoreStr);
+        if (isNaN(claimedScore)) continue;
+
+        // Parse operators list (space-separated, remove @ symbols)
+        const operators = operatorsStr
+          .split(/\s+/)
+          .map((op: string) => op.replace(/@/g, '').trim().toUpperCase())
+          .filter((op: string) => op.length > 0);
+
+        // If no operators specified, use station callsign
+        const operatorList = operators.length > 0 ? operators : [station];
+
+        // Validate submission
+        const validation = await validateSubmission(
+          station,
+          operatorList,
+          'Yankee Clipper Contest Club',
+          category,
+          contestYear
+        );
+
+        // Deactivate any existing submission for this station/contest/year
+        const existingSubmissions = await storage.getActiveSubmissionsByContest(
+          contestYear,
+          contestName
+        );
+        
+        const existingSubmission = existingSubmissions.find(s => s.callsign === station);
+        if (existingSubmission) {
+          await storage.deleteOperatorPointsBySubmission(existingSubmission.id);
+          await storage.deactivateSubmission(station, contestName, contestYear);
+        }
+
+        const totalOperators = operatorList.length;
+        
+        // Create submission (accepted even if no valid operators for data preservation)
+        const submission = await storage.createSubmission({
+          seasonYear: contestYear,
+          contestYear: contestYear,
+          contestKey: contestName,
+          mode: mode,
+          callsign: station,
+          categoryOperator: category,
+          claimedScore: claimedScore,
+          operatorList: operatorList.join(','),
+          memberOperators: validation.memberOperators?.join(','),
+          totalOperators,
+          effectiveOperators: validation.effectiveOperators || 1,
+          club: 'Yankee Clipper Contest Club',
+          status: validation.valid ? "accepted" : "accepted", // Accept all for historical import
+          rejectReason: validation.valid ? undefined : validation.error,
+        });
+
+        // Create operator points if we have valid members
+        if (validation.valid && validation.memberOperators && validation.memberOperators.length > 0) {
+          await recomputeBaseline(contestYear, contestName);
+          
+          const baseline = await storage.getBaseline(contestYear, contestName);
+          const individualClaimed = claimedScore / totalOperators;
+          
+          const maxPoints = await calculateMaxPoints(contestYear, contestName);
+          const normalizedPoints = baseline?.highestSingleClaimed 
+            ? (individualClaimed / baseline.highestSingleClaimed) * maxPoints
+            : maxPoints;
+
+          for (const operator of validation.memberOperators) {
+            await storage.createOperatorPoints({
+              submissionId: submission.id,
+              memberCallsign: operator,
+              individualClaimed: Math.round(individualClaimed),
+              normalizedPoints: Math.round(normalizedPoints),
+            });
+          }
+        }
+
+        importedCount++;
+        results.push({ station, category, mode, score: claimedScore, operators: operatorList.length });
+      }
+
+      // Broadcast update
+      broadcast("submission:created", {
+        contest: contestName,
+        seasonYear: contestYear,
+        count: importedCount,
+      });
+
+      res.json({
+        success: true,
+        count: importedCount,
+        message: `Imported ${importedCount} submissions from CSV`,
+        sample: results.slice(0, 5),
+      });
+    } catch (error) {
+      console.error("CSV import error:", error);
+      res.status(500).json({ error: "Failed to import CSV file" });
+    }
+  });
+
   app.post("/api/admin/recompute", async (req, res) => {
     try {
       const { contestKey, seasonYear } = req.body;
