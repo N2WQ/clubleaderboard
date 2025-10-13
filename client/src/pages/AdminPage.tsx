@@ -230,8 +230,13 @@ export default function AdminPage() {
       });
       
       if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || "Import failed");
+        try {
+          const error = await res.json();
+          throw new Error(error.error || "Import failed");
+        } catch (e) {
+          // If response isn't JSON, use status text
+          throw new Error(`Import failed: ${res.statusText || res.status}`);
+        }
       }
       
       return res.json();
