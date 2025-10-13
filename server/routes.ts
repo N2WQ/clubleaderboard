@@ -18,6 +18,11 @@ const upload = multer({
 export async function registerRoutes(app: Express): Promise<Server> {
   const currentYear = new Date().getFullYear();
 
+  // Health check endpoint for deployment - must be registered before serveStatic
+  app.get("/health", (_req, res) => {
+    res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
+  });
+
   app.post("/api/upload", upload.single("file"), async (req, res) => {
     try {
       if (!req.file) {
