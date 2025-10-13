@@ -444,58 +444,72 @@ export default function AdminPage() {
 
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="select-contest">Select Contest</Label>
-                  <Select
+                  <Label htmlFor="input-contest">Contest Key</Label>
+                  <Input
+                    id="input-contest"
+                    type="text"
+                    placeholder="Enter contest key (e.g., CQ-WW-DX, ARRL-DX)"
                     value={selectedContest}
-                    onValueChange={(value) => {
-                      setSelectedContest(value);
+                    onChange={(e) => {
+                      setSelectedContest(e.target.value);
                       setSelectedYear("");
                     }}
-                  >
-                    <SelectTrigger id="select-contest" data-testid="select-contest">
-                      <SelectValue placeholder="Choose a contest..." />
-                    </SelectTrigger>
-                    <SelectContent>
+                    data-testid="input-contest"
+                  />
+                  {availableContests.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      <p className="text-xs text-muted-foreground w-full">Quick select existing:</p>
                       {availableContests.map((contestKey: string) => (
-                        <SelectItem 
-                          key={contestKey} 
-                          value={contestKey}
-                          data-testid={`option-contest-${contestKey}`}
+                        <Button
+                          key={contestKey}
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedContest(contestKey);
+                            setSelectedYear("");
+                          }}
+                          data-testid={`button-quick-contest-${contestKey}`}
                         >
                           {contestKey}
-                        </SelectItem>
+                        </Button>
                       ))}
-                    </SelectContent>
-                  </Select>
+                    </div>
+                  )}
                   <p className="text-xs text-muted-foreground">
-                    Select the contest to which this CSV data belongs
+                    Enter the contest key exactly as it appears in the CONTEST field of Cabrillo logs
                   </p>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="select-year">Select Year</Label>
-                  <Select
+                  <Label htmlFor="input-year">Contest Year</Label>
+                  <Input
+                    id="input-year"
+                    type="number"
+                    placeholder="Enter year (e.g., 2024)"
                     value={selectedYear}
-                    onValueChange={setSelectedYear}
-                    disabled={!selectedContest}
-                  >
-                    <SelectTrigger id="select-year" data-testid="select-year">
-                      <SelectValue placeholder="Choose a year..." />
-                    </SelectTrigger>
-                    <SelectContent>
+                    onChange={(e) => setSelectedYear(e.target.value)}
+                    min="1900"
+                    max={currentYear + 1}
+                    data-testid="input-year"
+                  />
+                  {availableYears.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      <p className="text-xs text-muted-foreground w-full">Quick select existing:</p>
                       {availableYears.map((year: number) => (
-                        <SelectItem 
-                          key={year} 
-                          value={String(year)}
-                          data-testid={`option-year-${year}`}
+                        <Button
+                          key={year}
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setSelectedYear(String(year))}
+                          data-testid={`button-quick-year-${year}`}
                         >
                           {year}
-                        </SelectItem>
+                        </Button>
                       ))}
-                    </SelectContent>
-                  </Select>
+                    </div>
+                  )}
                   <p className="text-xs text-muted-foreground">
-                    Select the year for this contest
+                    Enter the contest year
                   </p>
                 </div>
 
