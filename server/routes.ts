@@ -489,31 +489,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const results = [];
 
       // Process each row
-      for (const row of parsed.data as any[]) {
+      for (let i = 0; i < (parsed.data as any[]).length; i++) {
+        const row = (parsed.data as any[])[i];
         if (!row || row.length < 4) continue;
 
-        const station = row[0]?.trim().toUpperCase();
-        const category = row[1]?.trim();
-        const csvMode = row[2]?.trim().toUpperCase();
-        const scoreStr = row[3]?.toString().replace(/,/g, '').trim();
-        const operatorsStr = row[4]?.trim() || '';
+        try {
+          const station = row[0]?.trim().toUpperCase();
+          const category = row[1]?.trim();
+          const csvMode = row[2]?.trim().toUpperCase();
+          const scoreStr = row[3]?.toString().replace(/,/g, '').trim();
+          const operatorsStr = row[4]?.trim() || '';
 
-        if (!station || !category || !scoreStr) continue;
+          if (!station || !category || !scoreStr) continue;
 
-        // Filter by mode: only import rows that match the selected mode
-        // CW matches CW, SSB matches PH (Phone)
-        const modeMatches = 
-          (assignedMode === 'CW' && csvMode === 'CW') ||
-          (assignedMode === 'SSB' && csvMode === 'PH') ||
-          (assignedMode === 'MIXED' && (csvMode === 'CW' || csvMode === 'PH'));
+          // Filter by mode: only import rows that match the selected mode
+          // CW matches CW, SSB matches PH (Phone)
+          const modeMatches = 
+            (assignedMode === 'CW' && csvMode === 'CW') ||
+            (assignedMode === 'SSB' && csvMode === 'PH') ||
+            (assignedMode === 'MIXED' && (csvMode === 'CW' || csvMode === 'PH'));
 
-        if (!modeMatches) {
-          skippedCount++;
-          continue;
-        }
+          if (!modeMatches) {
+            skippedCount++;
+            continue;
+          }
 
-        const claimedScore = parseInt(scoreStr);
-        if (isNaN(claimedScore)) continue;
+          const claimedScore = parseInt(scoreStr);
+          if (isNaN(claimedScore)) continue;
 
         // Parse operators list (space-separated, remove @ symbols)
         const operators = operatorsStr
@@ -587,8 +589,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
 
-        importedCount++;
-        results.push({ station, category, mode: assignedMode, score: claimedScore, operators: operatorList.length });
+          importedCount++;
+          results.push({ station, category, mode: assignedMode, score: claimedScore, operators: operatorList.length });
+        } catch (rowError) {
+          console.error(`Error processing row ${i}:`, rowError, row);
+          // Continue to next row on error
+        }
       }
 
       // Broadcast update
