@@ -5,7 +5,7 @@ import Papa from "papaparse";
 import { storage } from "./storage";
 import { parseCabrillo } from "./cabrillo-parser";
 import { validateSubmission, computeNormalizedPoints, recomputeBaseline, calculateMaxPoints } from "./scoring-engine";
-import { fetchYCCCRoster } from "./roster-scraper";
+import { fetchYCCCRoster, isDuesValidForYear } from "./roster-scraper";
 import { setupWebSocket, broadcast } from "./websocket";
 import { startScheduler } from "./scheduler";
 import { sendEmail, createSubmissionConfirmationEmail } from "./email-service";
@@ -505,6 +505,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const results = [];
       const importedSubmissionIds: number[] = []; // Track imported submissions for batch point calculation
 
+      // OPTIMIZATION: Cache data before loop to avoid N+1 queries
+      console.log(`CSV import: Caching members and existing submissions...`);
+      const allMembers = await storage.getAllActiveMembers();
+      const memberMap = new Map<string, any>();
+      
+      allMembers.forEach(member => {
+        memberMap.set(member.callsign.toUpperCase(), member);
+        if (member.aliases) {
+          const aliases = member.aliases.split(',').map((a: string) => a.trim().toUpperCase());
+          aliases.forEach((alias: string) => {
+            if (alias) memberMap.set(alias, member);
+          });
+        }
+      });
+      
+      const existingSubmissions = await storage.getActiveSubmissionsByContest(contestYear, contestKey);
+      const existingSubmissionsMap = new Map(existingSubmissions.map(s => [s.callsign, s]));
+      
+      console.log(`CSV import: Processing ${(parsed.data as any[]).length} rows...`);
+
       // Process each row
       for (let i = 0; i < (parsed.data as any[]).length; i++) {
         const row = (parsed.data as any[])[i];
@@ -543,28 +563,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // If no operators specified, use station callsign
         const operatorList = operators.length > 0 ? operators : [station];
 
-        // Validate submission
-        const validation = await validateSubmission(
-          station,
-          operatorList,
-          'Yankee Clipper Contest Club',
-          category,
-          contestYear
-        );
-
-        // Deactivate any existing submission for this station/contest/year
-        const existingSubmissions = await storage.getActiveSubmissionsByContest(
-          contestYear,
-          contestKey
-        );
+        // OPTIMIZATION: Validate using cached member data
+        const memberOperators: string[] = [];
+        const operatorsToCheck = operatorList.length > 0 ? operatorList : [station];
         
-        const existingSubmission = existingSubmissions.find(s => s.callsign === station);
+        for (const op of operatorsToCheck) {
+          const normalizedOp = op.toUpperCase();
+          if (memberMap.has(normalizedOp)) {
+            const member = memberMap.get(normalizedOp)!;
+            // Check dues expiration
+            if (member.duesExpiration && isDuesValidForYear(member.duesExpiration, contestYear)) {
+              if (!memberOperators.includes(member.callsign)) {
+                memberOperators.push(member.callsign);
+              }
+            }
+          }
+        }
+
+        // OPTIMIZATION: Check existing submissions using cached map
+        const existingSubmission = existingSubmissionsMap.get(station);
         if (existingSubmission) {
           await storage.deleteOperatorPointsBySubmission(existingSubmission.id);
           await storage.deactivateSubmission(station, contestKey, contestYear);
         }
 
         const totalOperators = operatorList.length;
+        const effectiveOperators = memberOperators.length > 0 ? memberOperators.length : 1;
         
         // Create submission (accepted even if no valid operators for data preservation)
         const submission = await storage.createSubmission({
@@ -576,12 +600,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           categoryOperator: category,
           claimedScore: claimedScore,
           operatorList: operatorList.join(','),
-          memberOperators: validation.memberOperators?.join(','),
+          memberOperators: memberOperators.length > 0 ? memberOperators.join(',') : undefined,
           totalOperators,
-          effectiveOperators: validation.effectiveOperators || 1,
+          effectiveOperators,
           club: 'Yankee Clipper Contest Club',
-          status: validation.valid ? "accepted" : "accepted", // Accept all for historical import
-          rejectReason: validation.valid ? undefined : validation.error,
+          status: "accepted", // Accept all for historical import
+          rejectReason: undefined,
         });
 
         importedSubmissionIds.push(submission.id); // Track for batch processing

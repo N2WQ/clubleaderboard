@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, timestamp, real, boolean, unique } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, timestamp, real, boolean, unique, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -38,7 +38,17 @@ export const submissions = pgTable("submissions", {
   rejectReason: text("reject_reason"),
   submittedAt: timestamp("submitted_at").notNull().defaultNow(),
   isActive: boolean("is_active").notNull().default(true),
-});
+}, (table) => ({
+  // Indexes for frequently queried columns
+  seasonYearIdx: index("submissions_season_year_idx").on(table.seasonYear),
+  contestKeyIdx: index("submissions_contest_key_idx").on(table.contestKey),
+  callsignIdx: index("submissions_callsign_idx").on(table.callsign),
+  statusIdx: index("submissions_status_idx").on(table.status),
+  isActiveIdx: index("submissions_is_active_idx").on(table.isActive),
+  // Composite indexes for common query patterns
+  seasonContestIdx: index("submissions_season_contest_idx").on(table.seasonYear, table.contestKey),
+  activeStatusIdx: index("submissions_active_status_idx").on(table.isActive, table.status),
+}));
 
 export const baselines = pgTable("baselines", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
@@ -55,7 +65,11 @@ export const operatorPoints = pgTable("operator_points", {
   memberCallsign: text("member_callsign").notNull(),
   individualClaimed: real("individual_claimed").notNull(),
   normalizedPoints: real("normalized_points").notNull(),
-});
+}, (table) => ({
+  // Indexes for frequently queried columns
+  submissionIdIdx: index("operator_points_submission_id_idx").on(table.submissionId),
+  memberCallsignIdx: index("operator_points_member_callsign_idx").on(table.memberCallsign),
+}));
 
 export const scoringConfig = pgTable("scoring_config", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
