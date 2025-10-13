@@ -53,6 +53,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
+      // OPTIMIZATION: Query submissions once and cache for reuse
       const existingSubmissions = await storage.getActiveSubmissionsByContest(
         contestYear,
         data.contest
@@ -93,14 +94,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         content: content,
       });
 
-      await recomputeBaseline(contestYear, data.contest);
+      // OPTIMIZATION: Fetch updated submissions list after new submission
+      const updatedSubmissions = await storage.getActiveSubmissionsByContest(contestYear, data.contest);
+      
+      // OPTIMIZATION: Pass cached submissions to avoid duplicate queries
+      await recomputeBaseline(contestYear, data.contest, updatedSubmissions);
 
       const baseline = await storage.getBaseline(contestYear, data.contest);
       const memberOps = validation.memberOperators || [data.callsign];
       const individualClaimed = data.claimedScore / totalOperators;
       
-      // Use dynamic max points based on scoring method
-      const maxPoints = await calculateMaxPoints(contestYear, data.contest);
+      // OPTIMIZATION: Pass submissions to avoid re-querying for participant-based scoring
+      const maxPoints = await calculateMaxPoints(contestYear, data.contest, updatedSubmissions);
       const normalizedPoints = baseline?.highestSingleClaimed 
         ? (individualClaimed / baseline.highestSingleClaimed) * maxPoints
         : maxPoints;
@@ -622,46 +627,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      console.log(`CSV import: Processing complete. ${importedCount} submissions created. Now recomputing ALL baselines and operator points for this contest...`);
+      console.log(`CSV import: Processing complete. ${importedCount} submissions created. Now recomputing baselines and operator points...`);
       
-      // CRITICAL: Recompute baseline FIRST to get accurate highest score including new submissions
+      // OPTIMIZATION: recomputeBaseline handles everything - baseline calculation, 
+      // deleting old operator points, and batch creating all operator points with correct baseline
       await recomputeBaseline(contestYear, contestKey);
-      const baseline = await storage.getBaseline(contestYear, contestKey);
-      const maxPoints = await calculateMaxPoints(contestYear, contestKey);
       
-      console.log(`CSV import: Baseline recomputed. Deleting old operator points and recalculating for ALL contest submissions...`);
-      
-      // Delete all existing operator points for this contest to avoid duplicates
-      await storage.deleteAllOperatorPointsForContest(contestYear, contestKey);
-      
-      // OPTIMIZATION: Batch create operator points for ALL submissions in this contest
-      // This ensures all submissions (old + new) use the same correct baseline
-      const allSubmissions = await storage.getActiveSubmissionsByContest(contestYear, contestKey);
-      
-      // Build array of all operator points to insert
-      const operatorPointsToInsert: any[] = [];
-      for (const sub of allSubmissions) {
-        if (sub.status === 'accepted' && sub.memberOperators) {
-          const memberOps = sub.memberOperators.split(',').filter(op => op.length > 0);
-          const individualClaimed = sub.claimedScore / sub.totalOperators;
-          const normalizedPoints = baseline?.highestSingleClaimed 
-            ? (individualClaimed / baseline.highestSingleClaimed) * maxPoints
-            : maxPoints;
-
-          for (const operator of memberOps) {
-            operatorPointsToInsert.push({
-              submissionId: sub.id,
-              memberCallsign: operator,
-              individualClaimed: Math.round(individualClaimed),
-              normalizedPoints: Math.round(normalizedPoints),
-            });
-          }
-        }
-      }
-      
-      // Batch insert all operator points at once
-      await storage.batchCreateOperatorPoints(operatorPointsToInsert);
-      console.log(`CSV import: Batch created ${operatorPointsToInsert.length} operator point records for ${allSubmissions.length} submissions`);
+      console.log(`CSV import: Baseline and operator points recomputed successfully.`);
 
       // Broadcast update
       broadcast("submission:created", {

@@ -11,7 +11,8 @@ export async function getScoringMethod(): Promise<ScoringMethod> {
 
 export async function calculateMaxPoints(
   seasonYear: number,
-  contestKey: string
+  contestKey: string,
+  cachedSubmissions?: any[]
 ): Promise<number> {
   const method = await getScoringMethod();
   
@@ -20,7 +21,8 @@ export async function calculateMaxPoints(
   }
   
   // participant-based: count unique member operators across all accepted submissions
-  const submissions = await storage.getActiveSubmissionsByContest(seasonYear, contestKey);
+  // Use cached submissions if provided to avoid duplicate query
+  const submissions = cachedSubmissions || await storage.getActiveSubmissionsByContest(seasonYear, contestKey);
   const acceptedSubmissions = submissions.filter(s => s.status === 'accepted');
   
   // Collect all unique member operators
@@ -171,16 +173,19 @@ export async function computeNormalizedPoints(
 
 export async function recomputeBaseline(
   seasonYear: number,
-  contestKey: string
+  contestKey: string,
+  cachedSubmissions?: any[]
 ): Promise<void> {
-  const submissions = await storage.getActiveSubmissionsByContest(seasonYear, contestKey);
+  // Use cached submissions if provided to avoid duplicate query
+  const submissions = cachedSubmissions || await storage.getActiveSubmissionsByContest(seasonYear, contestKey);
   const acceptedSubmissions = submissions.filter(s => s.status === 'accepted');
   
   if (acceptedSubmissions.length === 0) {
     return;
   }
 
-  const maxPoints = await calculateMaxPoints(seasonYear, contestKey);
+  // Pass submissions to avoid re-querying for participant-based scoring
+  const maxPoints = await calculateMaxPoints(seasonYear, contestKey, acceptedSubmissions);
   const singleOpSubmissions = acceptedSubmissions.filter(s => s.effectiveOperators === 1);
   
   let maxScore: number;
@@ -196,20 +201,26 @@ export async function recomputeBaseline(
     maxScore = Math.max(...acceptedSubmissions.map(s => s.claimedScore / s.totalOperators));
   }
 
+  // OPTIMIZATION: Delete all operator points for contest at once, then batch insert
+  await storage.deleteAllOperatorPointsForContest(seasonYear, contestKey);
+  
+  // Build array of all operator points to insert
+  const operatorPointsToInsert: any[] = [];
   for (const sub of acceptedSubmissions) {
-    await storage.deleteOperatorPointsBySubmission(sub.id);
-    
     const memberOps = sub.memberOperators?.split(',') || [];
     const individualClaimed = sub.claimedScore / sub.totalOperators;
     const normalizedPoints = (individualClaimed / maxScore) * maxPoints;
     
     for (const memberCall of memberOps) {
-      await storage.createOperatorPoints({
+      operatorPointsToInsert.push({
         submissionId: sub.id,
         memberCallsign: memberCall.trim(),
         individualClaimed: Math.round(individualClaimed),
-        normalizedPoints,
+        normalizedPoints: Math.round(normalizedPoints),
       });
     }
   }
+  
+  // Batch insert all operator points at once
+  await storage.batchCreateOperatorPoints(operatorPointsToInsert);
 }
