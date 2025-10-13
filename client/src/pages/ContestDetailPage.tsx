@@ -11,12 +11,16 @@ export default function ContestDetailPage() {
   const contestKey = params.key?.toUpperCase() || "";
   
   const urlParams = new URLSearchParams(window.location.search);
-  const year = parseInt(urlParams.get("year") || new Date().getFullYear().toString());
+  const yearParam = urlParams.get("year");
 
   const { data, isLoading } = useQuery({
-    queryKey: ["/api/contest", contestKey, year],
+    queryKey: ["/api/contest", contestKey, yearParam],
     queryFn: async () => {
-      const res = await fetch(`/api/contest/${contestKey}?year=${year}`);
+      // If year is specified, use it. Otherwise, let the API find the most recent year
+      const url = yearParam 
+        ? `/api/contest/${contestKey}?year=${yearParam}`
+        : `/api/contest/${contestKey}`;
+      const res = await fetch(url);
       if (!res.ok) throw new Error("Failed to fetch contest details");
       return res.json();
     },
