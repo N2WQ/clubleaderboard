@@ -389,6 +389,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/admin/contests", async (req, res) => {
+    try {
+      const contests = await storage.getAllUniqueContests();
+      res.json(contests);
+    } catch (error) {
+      console.error("Get contests error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   app.post("/api/admin/sync-roster", async (req, res) => {
     try {
       const rosterMembers = await fetchYCCCRoster();
@@ -434,11 +444,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "No file uploaded" });
       }
 
-      const contestName = req.body.contestName?.trim();
+      const contestKey = req.body.contestKey?.trim();
       const contestYear = parseInt(req.body.contestYear);
+      const assignedMode = req.body.mode?.trim().toUpperCase();
 
-      if (!contestName || !contestYear) {
-        return res.status(400).json({ error: "Contest name and year are required" });
+      if (!contestKey || !contestYear || !assignedMode) {
+        return res.status(400).json({ error: "Contest key, year, and mode are required" });
       }
 
       const content = req.file.buffer.toString('utf-8');
@@ -459,16 +470,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         const station = row[0]?.trim().toUpperCase();
         const category = row[1]?.trim();
-        let mode = row[2]?.trim().toUpperCase();
+        // row[2] is mode from CSV - we ignore it and use assignedMode
         const scoreStr = row[3]?.toString().replace(/,/g, '').trim();
         const operatorsStr = row[4]?.trim() || '';
 
-        if (!station || !category || !mode || !scoreStr) continue;
-
-        // Map PH to SSB
-        if (mode === 'PH') {
-          mode = 'SSB';
-        }
+        if (!station || !category || !scoreStr) continue;
 
         const claimedScore = parseInt(scoreStr);
         if (isNaN(claimedScore)) continue;
@@ -494,13 +500,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Deactivate any existing submission for this station/contest/year
         const existingSubmissions = await storage.getActiveSubmissionsByContest(
           contestYear,
-          contestName
+          contestKey
         );
         
         const existingSubmission = existingSubmissions.find(s => s.callsign === station);
         if (existingSubmission) {
           await storage.deleteOperatorPointsBySubmission(existingSubmission.id);
-          await storage.deactivateSubmission(station, contestName, contestYear);
+          await storage.deactivateSubmission(station, contestKey, contestYear);
         }
 
         const totalOperators = operatorList.length;
@@ -509,8 +515,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const submission = await storage.createSubmission({
           seasonYear: contestYear,
           contestYear: contestYear,
-          contestKey: contestName,
-          mode: mode,
+          contestKey: contestKey,
+          mode: assignedMode,
           callsign: station,
           categoryOperator: category,
           claimedScore: claimedScore,
@@ -525,12 +531,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // Create operator points if we have valid members
         if (validation.valid && validation.memberOperators && validation.memberOperators.length > 0) {
-          await recomputeBaseline(contestYear, contestName);
+          await recomputeBaseline(contestYear, contestKey);
           
-          const baseline = await storage.getBaseline(contestYear, contestName);
+          const baseline = await storage.getBaseline(contestYear, contestKey);
           const individualClaimed = claimedScore / totalOperators;
           
-          const maxPoints = await calculateMaxPoints(contestYear, contestName);
+          const maxPoints = await calculateMaxPoints(contestYear, contestKey);
           const normalizedPoints = baseline?.highestSingleClaimed 
             ? (individualClaimed / baseline.highestSingleClaimed) * maxPoints
             : maxPoints;
@@ -546,12 +552,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         importedCount++;
-        results.push({ station, category, mode, score: claimedScore, operators: operatorList.length });
+        results.push({ station, category, mode: assignedMode, score: claimedScore, operators: operatorList.length });
       }
 
       // Broadcast update
       broadcast("submission:created", {
-        contest: contestName,
+        contest: contestKey,
         seasonYear: contestYear,
         count: importedCount,
       });
@@ -559,7 +565,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({
         success: true,
         count: importedCount,
-        message: `Imported ${importedCount} submissions from CSV`,
+        message: `Imported ${importedCount} submissions to ${contestKey} ${contestYear} (${assignedMode})`,
         sample: results.slice(0, 5),
       });
     } catch (error) {

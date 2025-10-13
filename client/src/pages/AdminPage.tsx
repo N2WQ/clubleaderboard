@@ -45,6 +45,15 @@ export default function AdminPage() {
     },
   });
 
+  const { data: availableContests = [] } = useQuery({
+    queryKey: ["/api/admin/contests"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/contests");
+      if (!res.ok) throw new Error("Failed to fetch contests");
+      return res.json();
+    },
+  });
+
   const updateScoringMethodMutation = useMutation({
     mutationFn: async (method: string) => {
       const res = await fetch("/api/admin/scoring-method", {
@@ -196,11 +205,12 @@ export default function AdminPage() {
   });
 
   const importCsvMutation = useMutation({
-    mutationFn: async (data: { file: File; contestName: string; contestYear: string }) => {
+    mutationFn: async (data: { file: File; contestKey: string; contestYear: string; mode: string }) => {
       const formData = new FormData();
       formData.append("file", data.file);
-      formData.append("contestName", data.contestName);
+      formData.append("contestKey", data.contestKey);
       formData.append("contestYear", data.contestYear);
+      formData.append("mode", data.mode);
       
       const res = await fetch("/api/admin/import-csv", {
         method: "POST",
@@ -221,7 +231,8 @@ export default function AdminPage() {
         description: data.message || `Successfully imported ${data.count} submissions`,
       });
       setCsvFile(null);
-      setContestName("");
+      setSelectedContest("");
+      setSelectedMode("");
     },
     onError: (error: Error) => {
       toast({
@@ -239,8 +250,14 @@ export default function AdminPage() {
   };
 
   const handleCsvImport = () => {
-    if (csvFile && contestName && contestYear) {
-      importCsvMutation.mutate({ file: csvFile, contestName, contestYear });
+    if (csvFile && selectedContest && selectedMode) {
+      const [contestKey, year] = selectedContest.split('|');
+      importCsvMutation.mutate({ 
+        file: csvFile, 
+        contestKey, 
+        contestYear: year,
+        mode: selectedMode 
+      });
     }
   };
 
@@ -401,35 +418,54 @@ export default function AdminPage() {
             <Card className="p-6">
               <h3 className="text-xl font-semibold mb-4">Import Historical Contest Data</h3>
               <p className="text-sm text-muted-foreground mb-6">
-                Import contest results from sponsor CSV files. Format: Station, Category, Mode (PH/CW), Score, Operators
+                Import contest results from sponsor CSV files. Select an existing contest, mode, and upload the CSV file.
               </p>
 
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="contest-name">Contest Name</Label>
-                  <Input
-                    id="contest-name"
-                    type="text"
-                    placeholder="e.g., CQWWDX"
-                    value={contestName}
-                    onChange={(e) => setContestName(e.target.value)}
-                    data-testid="input-contest-name"
-                  />
+                  <Label htmlFor="select-contest">Select Contest</Label>
+                  <Select
+                    value={selectedContest}
+                    onValueChange={setSelectedContest}
+                  >
+                    <SelectTrigger id="select-contest" data-testid="select-contest">
+                      <SelectValue placeholder="Choose a contest..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableContests.map((contest: any) => (
+                        <SelectItem 
+                          key={`${contest.contestKey}-${contest.seasonYear}`} 
+                          value={`${contest.contestKey}|${contest.seasonYear}`}
+                          data-testid={`option-contest-${contest.contestKey}-${contest.seasonYear}`}
+                        >
+                          {contest.contestKey} ({contest.seasonYear})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <p className="text-xs text-muted-foreground">
-                    This will be used as the contest identifier (same as CONTEST field in Cabrillo)
+                    Select the contest to which this CSV data belongs
                   </p>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="contest-year">Contest Year</Label>
-                  <Input
-                    id="contest-year"
-                    type="number"
-                    placeholder="2024"
-                    value={contestYear}
-                    onChange={(e) => setContestYear(e.target.value)}
-                    data-testid="input-contest-year"
-                  />
+                  <Label htmlFor="select-mode">Select Mode</Label>
+                  <Select
+                    value={selectedMode}
+                    onValueChange={setSelectedMode}
+                  >
+                    <SelectTrigger id="select-mode" data-testid="select-mode">
+                      <SelectValue placeholder="Choose mode..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="CW" data-testid="option-mode-cw">CW</SelectItem>
+                      <SelectItem value="SSB" data-testid="option-mode-ssb">SSB (Phone)</SelectItem>
+                      <SelectItem value="MIXED" data-testid="option-mode-mixed">Mixed</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    All imported entries will be assigned this mode
+                  </p>
                 </div>
 
                 <div className="space-y-2">
@@ -458,7 +494,7 @@ export default function AdminPage() {
                 <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/20">
                   <p className="text-sm font-medium text-blue-600 dark:text-blue-400">Import Notes</p>
                   <ul className="text-xs text-muted-foreground mt-2 space-y-1">
-                    <li>• PH mode will be automatically mapped to SSB</li>
+                    <li>• Mode from dropdown will be applied to all entries</li>
                     <li>• Operators will be validated against current roster</li>
                     <li>• Only operators with current dues will be scored</li>
                     <li>• Duplicate submissions will deactivate previous entries</li>
@@ -467,7 +503,7 @@ export default function AdminPage() {
 
                 <Button
                   onClick={handleCsvImport}
-                  disabled={!csvFile || !contestName || !contestYear || importCsvMutation.isPending}
+                  disabled={!csvFile || !selectedContest || !selectedMode || importCsvMutation.isPending}
                   data-testid="button-import-csv"
                 >
                   <FileSpreadsheet className="h-4 w-4 mr-2" />
