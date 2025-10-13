@@ -375,6 +375,12 @@ export class DbStorage implements IStorage {
     return result[0];
   }
 
+  async batchCreateOperatorPoints(pointsArray: InsertOperatorPoints[]): Promise<void> {
+    if (pointsArray.length === 0) return;
+    // Batch insert all operator points at once for better performance
+    await db.insert(schema.operatorPoints).values(pointsArray);
+  }
+
   async deleteOperatorPointsBySubmission(submissionId: number): Promise<void> {
     await db.delete(schema.operatorPoints).where(eq(schema.operatorPoints.submissionId, submissionId));
   }

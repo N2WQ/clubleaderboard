@@ -629,11 +629,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const baseline = await storage.getBaseline(contestYear, contestKey);
       const maxPoints = await calculateMaxPoints(contestYear, contestKey);
       
-      // Now create operator points ONLY for the submissions we just imported
+      // OPTIMIZATION: Batch create operator points for all imported submissions
       const allSubmissions = await storage.getActiveSubmissionsByContest(contestYear, contestKey);
       const importedSubmissions = allSubmissions.filter(sub => importedSubmissionIds.includes(sub.id));
       
-      let pointsCreated = 0;
+      // Build array of all operator points to insert
+      const operatorPointsToInsert: any[] = [];
       for (const sub of importedSubmissions) {
         if (sub.status === 'accepted' && sub.memberOperators) {
           const memberOps = sub.memberOperators.split(',').filter(op => op.length > 0);
@@ -643,18 +644,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
             : maxPoints;
 
           for (const operator of memberOps) {
-            await storage.createOperatorPoints({
+            operatorPointsToInsert.push({
               submissionId: sub.id,
               memberCallsign: operator,
               individualClaimed: Math.round(individualClaimed),
               normalizedPoints: Math.round(normalizedPoints),
             });
-            pointsCreated++;
           }
         }
       }
       
-      console.log(`CSV import: Created ${pointsCreated} operator point records for ${importedSubmissions.length} submissions`);
+      // Batch insert all operator points at once
+      await storage.batchCreateOperatorPoints(operatorPointsToInsert);
+      console.log(`CSV import: Batch created ${operatorPointsToInsert.length} operator point records for ${importedSubmissions.length} submissions`);
 
       // Broadcast update
       broadcast("submission:created", {
