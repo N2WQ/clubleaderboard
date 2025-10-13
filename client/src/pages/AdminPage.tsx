@@ -22,8 +22,8 @@ export default function AdminPage() {
   const [emailCallsign, setEmailCallsign] = useState("");
   const [emailAddress, setEmailAddress] = useState("");
   const [csvFile, setCsvFile] = useState<File | null>(null);
-  const [contestName, setContestName] = useState("");
-  const [contestYear, setContestYear] = useState(new Date().getFullYear().toString());
+  const [selectedContest, setSelectedContest] = useState("");
+  const [selectedMode, setSelectedMode] = useState("");
   const { toast } = useToast();
   const currentYear = new Date().getFullYear();
 
