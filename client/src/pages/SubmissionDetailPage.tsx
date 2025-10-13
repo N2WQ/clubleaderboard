@@ -4,7 +4,6 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Calendar, Radio, Users } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { StatusBadge } from "@/components/StatusBadge";
 
 export default function SubmissionDetailPage() {
   const { id } = useParams();
@@ -122,10 +121,6 @@ export default function SubmissionDetailPage() {
                 <p className="font-mono font-semibold text-lg" data-testid="text-station-callsign">{submission.callsign}</p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground mb-1">Status</p>
-                <StatusBadge status={submission.status} />
-              </div>
-              <div>
                 <p className="text-sm text-muted-foreground mb-1">Claimed Score</p>
                 <p className="font-mono font-semibold text-lg" data-testid="text-claimed-score">
                   {submission.claimedScore.toLocaleString()}
@@ -172,15 +167,6 @@ export default function SubmissionDetailPage() {
                   </TableBody>
                 </Table>
               </div>
-            </Card>
-          )}
-
-          {submission.status === 'rejected' && submission.rejectionReason && (
-            <Card className="p-6 border-destructive">
-              <h2 className="text-xl font-semibold mb-2 text-destructive">Rejection Reason</h2>
-              <p className="text-sm text-muted-foreground" data-testid="text-rejection-reason">
-                {submission.rejectionReason}
-              </p>
             </Card>
           )}
         </div>
