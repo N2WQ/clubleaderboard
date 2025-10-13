@@ -622,20 +622,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      console.log(`CSV import: Processing complete. ${importedCount} submissions created. Now recomputing baselines and operator points...`);
+      console.log(`CSV import: Processing complete. ${importedCount} submissions created. Now recomputing ALL baselines and operator points for this contest...`);
       
-      // OPTIMIZATION: Recompute baseline ONCE after all submissions are created
+      // CRITICAL: Recompute baseline FIRST to get accurate highest score including new submissions
       await recomputeBaseline(contestYear, contestKey);
       const baseline = await storage.getBaseline(contestYear, contestKey);
       const maxPoints = await calculateMaxPoints(contestYear, contestKey);
       
-      // OPTIMIZATION: Batch create operator points for all imported submissions
+      console.log(`CSV import: Baseline recomputed. Deleting old operator points and recalculating for ALL contest submissions...`);
+      
+      // Delete all existing operator points for this contest to avoid duplicates
+      await storage.deleteAllOperatorPointsForContest(contestYear, contestKey);
+      
+      // OPTIMIZATION: Batch create operator points for ALL submissions in this contest
+      // This ensures all submissions (old + new) use the same correct baseline
       const allSubmissions = await storage.getActiveSubmissionsByContest(contestYear, contestKey);
-      const importedSubmissions = allSubmissions.filter(sub => importedSubmissionIds.includes(sub.id));
       
       // Build array of all operator points to insert
       const operatorPointsToInsert: any[] = [];
-      for (const sub of importedSubmissions) {
+      for (const sub of allSubmissions) {
         if (sub.status === 'accepted' && sub.memberOperators) {
           const memberOps = sub.memberOperators.split(',').filter(op => op.length > 0);
           const individualClaimed = sub.claimedScore / sub.totalOperators;
@@ -656,7 +661,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Batch insert all operator points at once
       await storage.batchCreateOperatorPoints(operatorPointsToInsert);
-      console.log(`CSV import: Batch created ${operatorPointsToInsert.length} operator point records for ${importedSubmissions.length} submissions`);
+      console.log(`CSV import: Batch created ${operatorPointsToInsert.length} operator point records for ${allSubmissions.length} submissions`);
 
       // Broadcast update
       broadcast("submission:created", {

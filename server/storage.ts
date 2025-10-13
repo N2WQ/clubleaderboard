@@ -385,6 +385,23 @@ export class DbStorage implements IStorage {
     await db.delete(schema.operatorPoints).where(eq(schema.operatorPoints.submissionId, submissionId));
   }
 
+  async deleteAllOperatorPointsForContest(seasonYear: number, contestKey: string): Promise<void> {
+    // Delete all operator points for submissions in this contest/year
+    const contestSubmissions = await db.select({ id: schema.submissions.id })
+      .from(schema.submissions)
+      .where(and(
+        eq(schema.submissions.seasonYear, seasonYear),
+        eq(schema.submissions.contestKey, contestKey),
+        eq(schema.submissions.isActive, true)
+      ));
+    
+    const submissionIds = contestSubmissions.map(s => s.id);
+    if (submissionIds.length > 0) {
+      await db.delete(schema.operatorPoints)
+        .where(sql`${schema.operatorPoints.submissionId} IN ${submissionIds}`);
+    }
+  }
+
   async clearAllContestData(): Promise<void> {
     await db.delete(schema.operatorPoints);
     await db.delete(schema.rawLogs);
