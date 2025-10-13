@@ -459,6 +459,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       let importedCount = 0;
+      let skippedCount = 0;
       const results = [];
 
       // Process each row
@@ -467,11 +468,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         const station = row[0]?.trim().toUpperCase();
         const category = row[1]?.trim();
-        // row[2] is mode from CSV - we ignore it and use assignedMode
+        const csvMode = row[2]?.trim().toUpperCase();
         const scoreStr = row[3]?.toString().replace(/,/g, '').trim();
         const operatorsStr = row[4]?.trim() || '';
 
         if (!station || !category || !scoreStr) continue;
+
+        // Filter by mode: only import rows that match the selected mode
+        // CW matches CW, SSB matches PH (Phone)
+        const modeMatches = 
+          (assignedMode === 'CW' && csvMode === 'CW') ||
+          (assignedMode === 'SSB' && csvMode === 'PH') ||
+          (assignedMode === 'MIXED' && (csvMode === 'CW' || csvMode === 'PH'));
+
+        if (!modeMatches) {
+          skippedCount++;
+          continue;
+        }
 
         const claimedScore = parseInt(scoreStr);
         if (isNaN(claimedScore)) continue;
@@ -562,7 +575,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({
         success: true,
         count: importedCount,
-        message: `Imported ${importedCount} submissions to ${contestKey} ${contestYear} (${assignedMode})`,
+        skipped: skippedCount,
+        message: `Imported ${importedCount} ${assignedMode} submissions to ${contestKey} ${contestYear}${skippedCount > 0 ? ` (skipped ${skippedCount} non-${assignedMode} rows)` : ''}`,
         sample: results.slice(0, 5),
       });
     } catch (error) {
