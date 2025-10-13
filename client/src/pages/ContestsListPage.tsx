@@ -55,13 +55,13 @@ export default function ContestsListPage() {
             {contests.map((contest: { contestKey: string; submissionCount: number }) => (
               <Card key={contest.contestKey} className="p-6" data-testid={`card-contest-${contest.contestKey}`}>
                 <div className="flex items-center justify-between gap-4">
-                  <Link href={`/contest/${contest.contestKey}`} className="flex items-center gap-3 hover-elevate active-elevate-2 cursor-pointer p-2 -ml-2 rounded-md flex-1">
+                  <Link href={`/contest/${contest.contestKey}?year=${currentYear}`} className="flex items-center gap-3 hover-elevate active-elevate-2 cursor-pointer p-2 -ml-2 rounded-md flex-1">
                     <Radio className="h-5 w-5 text-primary" />
                     <div>
                       <h3 className="font-semibold font-mono">{contest.contestKey}</h3>
                     </div>
                   </Link>
-                  <Link href={`/contest/${contest.contestKey}`} className="shrink-0" data-testid={`log-count-link-${contest.contestKey}`}>
+                  <Link href={`/contest/${contest.contestKey}?year=${currentYear}`} className="shrink-0" data-testid={`log-count-link-${contest.contestKey}`}>
                     <div className="flex items-center gap-1 hover:underline cursor-pointer text-primary font-mono">
                       <span className="text-lg font-bold">{contest.submissionCount}</span>
                       <span className="text-sm">{contest.submissionCount === 1 ? 'log' : 'logs'}</span>
