@@ -267,7 +267,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/contest/:key", async (req, res) => {
     try {
       const { key } = req.params;
-      const seasonYear = parseInt(req.query.year as string) || currentYear;
+      let seasonYear = parseInt(req.query.year as string) || undefined;
+      
+      // If no year provided, find the most recent year with submissions for this contest
+      if (!seasonYear) {
+        const allSubmissions = await storage.getAllSubmissions(undefined, undefined);
+        const contestSubmissions = allSubmissions.filter(s => 
+          s.contestKey === key.toUpperCase() && s.status === 'accepted'
+        );
+        
+        if (contestSubmissions.length > 0) {
+          // Get the most recent year
+          const years = contestSubmissions.map(s => s.seasonYear);
+          seasonYear = Math.max(...years);
+        } else {
+          // No submissions found, default to current year
+          seasonYear = currentYear;
+        }
+      }
       
       const results = await storage.getContestResults(key.toUpperCase(), seasonYear);
       const baseline = await storage.getBaseline(seasonYear, key.toUpperCase());
