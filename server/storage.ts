@@ -461,6 +461,25 @@ export class DbStorage implements IStorage {
     };
   }
 
+  async getAllContests(): Promise<any[]> {
+    // Get all contests across all years with total submission counts
+    const allContests = await db.select({
+      contestKey: schema.submissions.contestKey,
+      submissionCount: sql<number>`CAST(COUNT(DISTINCT ${schema.submissions.id}) AS INTEGER)`.as('submission_count'),
+    }).from(schema.submissions)
+      .where(and(
+        eq(schema.submissions.isActive, true),
+        eq(schema.submissions.status, 'accepted')
+      ))
+      .groupBy(schema.submissions.contestKey)
+      .orderBy(schema.submissions.contestKey);
+
+    return allContests.map(c => ({
+      contestKey: c.contestKey,
+      submissionCount: Number(c.submissionCount),
+    }));
+  }
+
   async getMostCompetitiveContests(limit: number, seasonYear?: number): Promise<any[]> {
     // Get contests with most submissions for specific year or all-time
     // Include all contests that tie with the 5th highest submission count
