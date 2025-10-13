@@ -56,6 +56,8 @@ export interface IStorage {
   getScoringConfig(key: string): Promise<ScoringConfig | undefined>;
   setScoringConfig(config: InsertScoringConfig): Promise<void>;
   getAllUniqueContests(): Promise<Array<{ contestYear: number; contestKey: string; submissionCount: number }>>;
+  getUniqueContestKeys(): Promise<string[]>;
+  getContestYears(contestKey: string): Promise<number[]>;
 }
 
 export class DbStorage implements IStorage {
@@ -603,6 +605,23 @@ export class DbStorage implements IStorage {
       );
     
     return results;
+  }
+
+  async getUniqueContestKeys(): Promise<string[]> {
+    const results = await db
+      .selectDistinct({
+        contestKey: schema.submissions.contestKey,
+      })
+      .from(schema.submissions)
+      .where(
+        and(
+          eq(schema.submissions.isActive, true),
+          eq(schema.submissions.status, "accepted")
+        )
+      )
+      .orderBy(schema.submissions.contestKey);
+    
+    return results.map(r => r.contestKey);
   }
 
   async getContestYears(contestKey: string): Promise<number[]> {

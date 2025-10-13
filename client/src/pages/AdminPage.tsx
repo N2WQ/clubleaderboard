@@ -23,6 +23,7 @@ export default function AdminPage() {
   const [emailAddress, setEmailAddress] = useState("");
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [selectedContest, setSelectedContest] = useState("");
+  const [selectedYear, setSelectedYear] = useState("");
   const [selectedMode, setSelectedMode] = useState("");
   const { toast } = useToast();
   const currentYear = new Date().getFullYear();
@@ -45,13 +46,24 @@ export default function AdminPage() {
     },
   });
 
-  const { data: availableContests = [] } = useQuery({
+  const { data: availableContests = [] } = useQuery<string[]>({
     queryKey: ["/api/admin/contests"],
     queryFn: async () => {
       const res = await fetch("/api/admin/contests");
       if (!res.ok) throw new Error("Failed to fetch contests");
       return res.json();
     },
+  });
+
+  const { data: availableYears = [] } = useQuery<number[]>({
+    queryKey: ["/api/admin/contest-years", selectedContest],
+    queryFn: async () => {
+      if (!selectedContest) return [];
+      const res = await fetch(`/api/admin/contest-years/${encodeURIComponent(selectedContest)}`);
+      if (!res.ok) throw new Error("Failed to fetch years");
+      return res.json();
+    },
+    enabled: !!selectedContest,
   });
 
   const updateScoringMethodMutation = useMutation({
@@ -227,6 +239,7 @@ export default function AdminPage() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/leaderboard"] });
       queryClient.invalidateQueries({ queryKey: ["/api/admin/contests"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/contest-years"], exact: false });
       queryClient.invalidateQueries({ queryKey: ["/api/insights/competitive-contests"] });
       queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
       toast({
@@ -235,6 +248,7 @@ export default function AdminPage() {
       });
       setCsvFile(null);
       setSelectedContest("");
+      setSelectedYear("");
       setSelectedMode("");
     },
     onError: (error: Error) => {
@@ -253,12 +267,11 @@ export default function AdminPage() {
   };
 
   const handleCsvImport = () => {
-    if (csvFile && selectedContest && selectedMode) {
-      const [contestKey, year] = selectedContest.split('|');
+    if (csvFile && selectedContest && selectedYear && selectedMode) {
       importCsvMutation.mutate({ 
         file: csvFile, 
-        contestKey, 
-        contestYear: year,
+        contestKey: selectedContest, 
+        contestYear: selectedYear,
         mode: selectedMode 
       });
     }
@@ -429,25 +442,55 @@ export default function AdminPage() {
                   <Label htmlFor="select-contest">Select Contest</Label>
                   <Select
                     value={selectedContest}
-                    onValueChange={setSelectedContest}
+                    onValueChange={(value) => {
+                      setSelectedContest(value);
+                      setSelectedYear("");
+                    }}
                   >
                     <SelectTrigger id="select-contest" data-testid="select-contest">
                       <SelectValue placeholder="Choose a contest..." />
                     </SelectTrigger>
                     <SelectContent>
-                      {availableContests.map((contest: any) => (
+                      {availableContests.map((contestKey: string) => (
                         <SelectItem 
-                          key={`${contest.contestKey}-${contest.contestYear}`} 
-                          value={`${contest.contestKey}|${contest.contestYear}`}
-                          data-testid={`option-contest-${contest.contestKey}-${contest.contestYear}`}
+                          key={contestKey} 
+                          value={contestKey}
+                          data-testid={`option-contest-${contestKey}`}
                         >
-                          {contest.contestKey} ({contest.contestYear})
+                          {contestKey}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground">
                     Select the contest to which this CSV data belongs
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="select-year">Select Year</Label>
+                  <Select
+                    value={selectedYear}
+                    onValueChange={setSelectedYear}
+                    disabled={!selectedContest}
+                  >
+                    <SelectTrigger id="select-year" data-testid="select-year">
+                      <SelectValue placeholder="Choose a year..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableYears.map((year: number) => (
+                        <SelectItem 
+                          key={year} 
+                          value={String(year)}
+                          data-testid={`option-year-${year}`}
+                        >
+                          {year}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Select the year for this contest
                   </p>
                 </div>
 
@@ -467,7 +510,7 @@ export default function AdminPage() {
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground">
-                    All imported entries will be assigned this mode
+                    Only CSV rows matching this mode will be imported
                   </p>
                 </div>
 
@@ -506,7 +549,7 @@ export default function AdminPage() {
 
                 <Button
                   onClick={handleCsvImport}
-                  disabled={!csvFile || !selectedContest || !selectedMode || importCsvMutation.isPending}
+                  disabled={!csvFile || !selectedContest || !selectedYear || !selectedMode || importCsvMutation.isPending}
                   data-testid="button-import-csv"
                 >
                   <FileSpreadsheet className="h-4 w-4 mr-2" />

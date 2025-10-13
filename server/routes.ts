@@ -388,10 +388,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/admin/contests", async (req, res) => {
     try {
-      const contests = await storage.getAllUniqueContests();
-      res.json(contests);
+      const contestKeys = await storage.getUniqueContestKeys();
+      res.json(contestKeys);
     } catch (error) {
       console.error("Get contests error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.get("/api/admin/contest-years/:contestKey", async (req, res) => {
+    try {
+      const contestKey = req.params.contestKey;
+      const years = await storage.getContestYears(contestKey);
+      res.json(years);
+    } catch (error) {
+      console.error("Get contest years error:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   });
