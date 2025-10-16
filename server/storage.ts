@@ -175,7 +175,12 @@ export class DbStorage implements IStorage {
       })
       .from(schema.operatorPoints)
       .innerJoin(schema.submissions, eq(schema.operatorPoints.submissionId, schema.submissions.id))
-      .where(eq(schema.submissions.seasonYear, seasonYear))
+      .where(
+        and(
+          eq(schema.submissions.seasonYear, seasonYear),
+          eq(schema.submissions.isActive, true)
+        )
+      )
       .groupBy(schema.operatorPoints.memberCallsign)
       .orderBy(desc(sql`ROUND(SUM(${schema.operatorPoints.normalizedPoints}))`));
 
@@ -210,7 +215,7 @@ export class DbStorage implements IStorage {
       })
       .from(schema.operatorPoints)
       .innerJoin(schema.submissions, eq(schema.operatorPoints.submissionId, schema.submissions.id))
-      .where(sql`1=1`)
+      .where(eq(schema.submissions.isActive, true))
       .groupBy(schema.operatorPoints.memberCallsign)
       .orderBy(desc(sql`ROUND(SUM(${schema.operatorPoints.normalizedPoints}))`));
 
@@ -257,7 +262,8 @@ export class DbStorage implements IStorage {
       .where(
         and(
           eq(schema.operatorPoints.memberCallsign, callsign),
-          eq(schema.submissions.seasonYear, seasonYear)
+          eq(schema.submissions.seasonYear, seasonYear),
+          eq(schema.submissions.isActive, true)
         )
       )
       .orderBy(desc(schema.submissions.submittedAt));

@@ -59,6 +59,7 @@ This project is an automated scoring system for the Yankee Clipper Contest Club 
     - CSV import: 100-row import reduced from ~300+ queries to ~5 queries
     - Regular upload: Per-file upload reduced from ~303 queries to ~4 queries (75x faster for large contests)
     - Eliminates timeout errors on large historical imports and busy upload periods
+- **Leaderboard Data Integrity (Oct 2025)**: Fixed critical bug where leaderboard queries included operator points from inactive submissions, causing inflated scores and duplicate entries. All queries joining operator_points with submissions now filter by `isActive = true`. Affects: getSeasonLeaderboard(), getAllTimeLeaderboard(), getMemberContestHistory(). System automatically cleaned 7 orphaned operator_points entries from inactive submissions.
 
 ### UI/UX Decisions
 - **Layout**: Clean, minimal design with tabs for different leaderboard views ordered as: All-Time (default), Current Year, Historical.
