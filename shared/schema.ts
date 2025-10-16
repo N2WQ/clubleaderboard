@@ -50,7 +50,7 @@ export const baselines = pgTable("baselines", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   seasonYear: integer("season_year").notNull(),
   contestKey: text("contest_key").notNull(),
-  highestSingleClaimed: integer("highest_single_claimed"),
+  highestSingleClaimed: real("highest_single_claimed"),
 }, (table) => ({
   uniqueKey: unique().on(table.seasonYear, table.contestKey),
 }));

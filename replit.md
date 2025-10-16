@@ -7,7 +7,7 @@ This project is an automated scoring system for the Yankee Clipper Contest Club 
 - **Default theme**: Dark mode (set in ThemeProvider)
 - **Design**: Data-focused, minimal UI, info-dense tables, professional ham radio aesthetic
 - **Font**: Inter (UI), JetBrains Mono (callsigns, scores)
-- **Color scheme**: Blue primary, muted backgrounds, clear status badges (green=accepted, red=rejected)
+- **Color scheme**: Blue primary, muted backgrounds, professional data display
 
 ## System Architecture
 
@@ -21,10 +21,13 @@ This project is an automated scoring system for the Yankee Clipper Contest Club 
 - **Contest Identification**: Contests are uniquely identified by the CONTEST field from Cabrillo logs (stored as contestKey). MODE is captured separately for display purposes only and is not used for contest identification or scoring calculations.
 - **Dues Validation & Inclusive Scoring**: Validates operator dues against a roster. Submissions are accepted if at least one operator has valid dues; only operators with current dues are scored. Operators with expired dues are excluded from scoring calculations with a warning.
 - **Configurable Scoring System**: Administrators can choose between two scoring methods via the Admin panel:
-  - **Fixed Method** (default): Uses a fixed maximum of 1,000,000 points for all contests. Formula: `(IndividualClaimed / HighestSingleOpForContest) × 1,000,000`
-  - **Participant-Based Method**: Dynamic maximum based on unique member operators. Formula: `(IndividualClaimed / HighestSingleOpForContest) × min(uniqueOperators × 50,000, 1,000,000)`. Counts all unique member operators across all accepted submissions for each contest/year. Maximum cap of 1,000,000 points (20 participants).
-- **Scoring Engine**: Implements normalized scoring using the selected method. `IndividualClaimed` is `ClaimedScore / TotalOperators`. All points are rounded to whole numbers.
-- **Baseline Calculation**: Dynamically computes the highest single-operator claimed score for each contest (identified by contestKey) to establish a baseline for normalization. Baselines are stored by (seasonYear, contestKey) only.
+  - **Fixed Method**: Uses a fixed maximum of 1,000,000 points for all contests. Formula: `(IndividualClaimed / ReferenceScore) × 1,000,000`
+  - **Participant-Based Method** (default): Dynamic maximum based on number of submitted logs. Formula: `(IndividualClaimed / ReferenceScore) × min(numberOfLogs × 50,000, 1,000,000)`. Counts all submitted logs for each contest/year. Maximum cap of 1,000,000 points (20 logs).
+- **Scoring Engine**: Implements normalized scoring using the selected method. Scores are calculated one log at a time for each contest/year:
+  1. **Reference Score (Baseline)**: The highest individual claimed score from ALL submissions (both single-op and multi-op). Individual claimed = (Claimed Score ÷ Number of Operators).
+  2. **Maximum Contest Score**: 50,000 × (Number of Logs), capped at 1,000,000.
+  3. **Individual YCCC Points**: `(IndividualClaimed / ReferenceScore) × MaximumContestScore`. All points are rounded to whole numbers.
+- **Baseline Calculation**: Dynamically computes the highest individual claimed score from ALL submissions for each contest (identified by contestKey) to establish the reference baseline for normalization. Baselines are stored by (seasonYear, contestKey) only.
 - **Duplicate Submission Handling**: Ensures that only the latest submission for a given callsign, contest, and year is active, deactivating previous submissions. Deactivation targets (callsign, contestKey, year) regardless of MODE.
 - **Dynamic Contest Year Parsing**: Extracts the contest year directly from QSO record dates in Cabrillo logs, allowing for historical data analysis and year-specific leaderboards.
 - **Dense Ranking**: Leaderboards utilize dense ranking (e.g., 1,1,1,2) for ties.
