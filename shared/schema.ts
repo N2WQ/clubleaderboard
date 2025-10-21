@@ -67,6 +67,18 @@ export const operatorPoints = pgTable("operator_points", {
   memberCallsignIdx: index("operator_points_member_callsign_idx").on(table.memberCallsign),
 }));
 
+export const cheerleaderPoints = pgTable("cheerleader_points", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  memberCallsign: text("member_callsign").notNull(),
+  seasonYear: integer("season_year").notNull(),
+  totalSpots: integer("total_spots").notNull().default(0),
+  cheerleaderPoints: integer("cheerleader_points").notNull().default(0),
+}, (table) => ({
+  uniqueKey: unique().on(table.memberCallsign, table.seasonYear),
+  memberCallsignIdx: index("cheerleader_points_member_callsign_idx").on(table.memberCallsign),
+  seasonYearIdx: index("cheerleader_points_season_year_idx").on(table.seasonYear),
+}));
+
 export const scoringConfig = pgTable("scoring_config", {
   id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
   key: text("key").notNull().unique(),
@@ -105,6 +117,12 @@ export const insertOperatorPointsSchema = z.object({
   individualClaimed: z.number(),
   normalizedPoints: z.number(),
 });
+export const insertCheerleaderPointsSchema = z.object({
+  memberCallsign: z.string(),
+  seasonYear: z.number(),
+  totalSpots: z.number().default(0),
+  cheerleaderPoints: z.number().default(0),
+});
 export const insertScoringConfigSchema = z.object({
   key: z.string(),
   value: z.string(),
@@ -120,5 +138,7 @@ export type Baseline = typeof baselines.$inferSelect;
 export type InsertBaseline = z.infer<typeof insertBaselineSchema>;
 export type OperatorPoints = typeof operatorPoints.$inferSelect;
 export type InsertOperatorPoints = z.infer<typeof insertOperatorPointsSchema>;
+export type CheerleaderPoints = typeof cheerleaderPoints.$inferSelect;
+export type InsertCheerleaderPoints = z.infer<typeof insertCheerleaderPointsSchema>;
 export type ScoringConfig = typeof scoringConfig.$inferSelect;
 export type InsertScoringConfig = z.infer<typeof insertScoringConfigSchema>;

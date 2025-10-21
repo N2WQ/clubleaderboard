@@ -13,6 +13,8 @@ import type {
   InsertBaseline,
   OperatorPoints,
   InsertOperatorPoints,
+  CheerleaderPoints,
+  InsertCheerleaderPoints,
   ScoringConfig,
   InsertScoringConfig,
 } from "@shared/schema";
@@ -58,6 +60,11 @@ export interface IStorage {
   getAllUniqueContests(): Promise<Array<{ contestYear: number; contestKey: string; submissionCount: number }>>;
   getUniqueContestKeys(): Promise<string[]>;
   getContestYears(contestKey: string): Promise<number[]>;
+
+  incrementCheerleaderPoints(memberCallsign: string, seasonYear: number, pointsPerSpot: number): Promise<void>;
+  getCheerleaderPoints(memberCallsign: string, seasonYear: number): Promise<CheerleaderPoints | undefined>;
+  getTopCheerleaders(limit: number, seasonYear?: number): Promise<any[]>;
+  getAllCheerleaderPointsForMember(memberCallsign: string): Promise<CheerleaderPoints[]>;
 }
 
 export class DbStorage implements IStorage {
@@ -168,35 +175,49 @@ export class DbStorage implements IStorage {
     const result = await db
       .select({
         callsign: schema.operatorPoints.memberCallsign,
-        totalPoints: sql<number>`ROUND(SUM(${schema.operatorPoints.normalizedPoints}))`,
+        contestPoints: sql<number>`ROUND(SUM(${schema.operatorPoints.normalizedPoints}))`,
+        cheerleaderPoints: sql<number>`COALESCE(${schema.cheerleaderPoints.cheerleaderPoints}, 0)`,
         contests: sql<number>`COUNT(DISTINCT ${schema.submissions.contestKey})`,
         totalClaimed: sql<number>`SUM(${schema.operatorPoints.individualClaimed})`,
         totalLogs: sql<number>`CAST(COUNT(DISTINCT ${schema.operatorPoints.submissionId}) AS INTEGER)`,
       })
       .from(schema.operatorPoints)
       .innerJoin(schema.submissions, eq(schema.operatorPoints.submissionId, schema.submissions.id))
+      .leftJoin(
+        schema.cheerleaderPoints,
+        and(
+          eq(schema.operatorPoints.memberCallsign, schema.cheerleaderPoints.memberCallsign),
+          eq(schema.cheerleaderPoints.seasonYear, seasonYear)
+        )
+      )
       .where(
         and(
           eq(schema.submissions.seasonYear, seasonYear),
           eq(schema.submissions.isActive, true)
         )
       )
-      .groupBy(schema.operatorPoints.memberCallsign)
-      .orderBy(desc(sql`ROUND(SUM(${schema.operatorPoints.normalizedPoints}))`));
+      .groupBy(schema.operatorPoints.memberCallsign, schema.cheerleaderPoints.cheerleaderPoints)
+      .orderBy(desc(sql`ROUND(SUM(${schema.operatorPoints.normalizedPoints})) + COALESCE(${schema.cheerleaderPoints.cheerleaderPoints}, 0)`));
 
     let currentRank = 1;
     let previousPoints: number | null = null;
     
     return result.map((row) => {
-      if (previousPoints !== null && row.totalPoints < previousPoints) {
+      const contestPoints = Number(row.contestPoints);
+      const cheerPoints = Number(row.cheerleaderPoints);
+      const totalPoints = contestPoints + cheerPoints;
+      
+      if (previousPoints !== null && totalPoints < previousPoints) {
         currentRank++;
       }
-      previousPoints = row.totalPoints;
+      previousPoints = totalPoints;
       
       return {
         rank: currentRank,
         callsign: row.callsign,
-        normalizedPoints: row.totalPoints,
+        contestPoints: contestPoints,
+        cheerleaderPoints: cheerPoints,
+        normalizedPoints: totalPoints, // YCCC Award Points
         contests: row.contests,
         claimedScore: row.totalClaimed,
         totalLogs: Number(row.totalLogs),
@@ -205,10 +226,11 @@ export class DbStorage implements IStorage {
   }
 
   async getAllTimeLeaderboard(): Promise<any[]> {
-    const result = await db
+    // First get contest points
+    const contestPointsResult = await db
       .select({
         callsign: schema.operatorPoints.memberCallsign,
-        totalPoints: sql<number>`ROUND(SUM(${schema.operatorPoints.normalizedPoints}))`,
+        contestPoints: sql<number>`ROUND(SUM(${schema.operatorPoints.normalizedPoints}))`,
         contests: sql<number>`COUNT(DISTINCT ${schema.submissions.seasonYear} || '_' || ${schema.submissions.contestKey})`,
         totalClaimed: sql<number>`SUM(${schema.operatorPoints.individualClaimed})`,
         totalLogs: sql<number>`CAST(COUNT(DISTINCT ${schema.operatorPoints.submissionId}) AS INTEGER)`,
@@ -216,25 +238,73 @@ export class DbStorage implements IStorage {
       .from(schema.operatorPoints)
       .innerJoin(schema.submissions, eq(schema.operatorPoints.submissionId, schema.submissions.id))
       .where(eq(schema.submissions.isActive, true))
-      .groupBy(schema.operatorPoints.memberCallsign)
-      .orderBy(desc(sql`ROUND(SUM(${schema.operatorPoints.normalizedPoints}))`));
+      .groupBy(schema.operatorPoints.memberCallsign);
 
+    // Get all cheerleader points totals
+    const cheerleaderPointsResult = await db
+      .select({
+        callsign: schema.cheerleaderPoints.memberCallsign,
+        cheerleaderPoints: sql<number>`SUM(${schema.cheerleaderPoints.cheerleaderPoints})`,
+      })
+      .from(schema.cheerleaderPoints)
+      .groupBy(schema.cheerleaderPoints.memberCallsign);
+
+    // Combine contest and cheerleader points
+    const cheerleaderMap = new Map(
+      cheerleaderPointsResult.map(r => [r.callsign, Number(r.cheerleaderPoints)])
+    );
+
+    const combined = contestPointsResult.map(row => ({
+      callsign: row.callsign,
+      contestPoints: Number(row.contestPoints),
+      cheerleaderPoints: cheerleaderMap.get(row.callsign) || 0,
+      contests: row.contests,
+      totalClaimed: row.totalClaimed,
+      totalLogs: Number(row.totalLogs),
+    }));
+
+    // Add members who only have cheerleader points (no contest submissions)
+    for (const [callsign, cheerPoints] of cheerleaderMap.entries()) {
+      if (!combined.find(c => c.callsign === callsign)) {
+        combined.push({
+          callsign,
+          contestPoints: 0,
+          cheerleaderPoints: cheerPoints,
+          contests: 0,
+          totalClaimed: 0,
+          totalLogs: 0,
+        });
+      }
+    }
+
+    // Sort by total points (YCCC Award Points)
+    combined.sort((a, b) => {
+      const totalA = a.contestPoints + a.cheerleaderPoints;
+      const totalB = b.contestPoints + b.cheerleaderPoints;
+      return totalB - totalA;
+    });
+
+    // Apply dense ranking
     let currentRank = 1;
     let previousPoints: number | null = null;
     
-    return result.map((row) => {
-      if (previousPoints !== null && row.totalPoints < previousPoints) {
+    return combined.map((row) => {
+      const totalPoints = row.contestPoints + row.cheerleaderPoints;
+      
+      if (previousPoints !== null && totalPoints < previousPoints) {
         currentRank++;
       }
-      previousPoints = row.totalPoints;
+      previousPoints = totalPoints;
       
       return {
         rank: currentRank,
         callsign: row.callsign,
-        normalizedPoints: row.totalPoints,
+        contestPoints: row.contestPoints,
+        cheerleaderPoints: row.cheerleaderPoints,
+        normalizedPoints: totalPoints, // YCCC Award Points
         contests: row.contests,
         claimedScore: row.totalClaimed,
-        totalLogs: Number(row.totalLogs),
+        totalLogs: row.totalLogs,
       };
     });
   }
@@ -660,6 +730,154 @@ export class DbStorage implements IStorage {
       .orderBy(desc(schema.submissions.contestYear));
     
     return results.map(r => r.contestYear);
+  }
+
+  async incrementCheerleaderPoints(memberCallsign: string, seasonYear: number, pointsPerSpot: number): Promise<void> {
+    const existing = await this.getCheerleaderPoints(memberCallsign, seasonYear);
+    
+    if (existing) {
+      // Update existing record
+      await db
+        .update(schema.cheerleaderPoints)
+        .set({
+          totalSpots: existing.totalSpots + 1,
+          cheerleaderPoints: existing.cheerleaderPoints + pointsPerSpot,
+        })
+        .where(
+          and(
+            eq(schema.cheerleaderPoints.memberCallsign, memberCallsign),
+            eq(schema.cheerleaderPoints.seasonYear, seasonYear)
+          )
+        );
+    } else {
+      // Create new record
+      await db.insert(schema.cheerleaderPoints).values({
+        memberCallsign,
+        seasonYear,
+        totalSpots: 1,
+        cheerleaderPoints: pointsPerSpot,
+      });
+    }
+  }
+
+  async getCheerleaderPoints(memberCallsign: string, seasonYear: number): Promise<CheerleaderPoints | undefined> {
+    const result = await db
+      .select()
+      .from(schema.cheerleaderPoints)
+      .where(
+        and(
+          eq(schema.cheerleaderPoints.memberCallsign, memberCallsign),
+          eq(schema.cheerleaderPoints.seasonYear, seasonYear)
+        )
+      )
+      .limit(1);
+    
+    return result[0];
+  }
+
+  async getTopCheerleaders(limit: number, seasonYear?: number): Promise<any[]> {
+    // Get top cheerleaders by total spots for specific year or all-time
+    // Include all cheerleaders that tie with the limit-th highest spot count
+    const whereConditions = [];
+    
+    if (seasonYear) {
+      whereConditions.push(eq(schema.cheerleaderPoints.seasonYear, seasonYear));
+    }
+
+    // First, get the initial batch
+    const initialResults = await db
+      .select({
+        memberCallsign: schema.cheerleaderPoints.memberCallsign,
+        totalSpots: seasonYear 
+          ? schema.cheerleaderPoints.totalSpots
+          : sql<number>`SUM(${schema.cheerleaderPoints.totalSpots})`.as('total_spots'),
+        cheerleaderPoints: seasonYear
+          ? schema.cheerleaderPoints.cheerleaderPoints
+          : sql<number>`SUM(${schema.cheerleaderPoints.cheerleaderPoints})`.as('cheerleader_points'),
+      })
+      .from(schema.cheerleaderPoints)
+      .where(whereConditions.length > 0 ? and(...whereConditions) : undefined)
+      .groupBy(schema.cheerleaderPoints.memberCallsign)
+      .orderBy(
+        seasonYear
+          ? desc(schema.cheerleaderPoints.totalSpots)
+          : desc(sql`SUM(${schema.cheerleaderPoints.totalSpots})`)
+      )
+      .limit(100);
+
+    if (initialResults.length === 0) {
+      return [];
+    }
+
+    // Get the spot count at the limit position
+    const limitThreshold = initialResults[Math.min(limit - 1, initialResults.length - 1)].totalSpots;
+
+    // Include all results that tie with or exceed the threshold, up to the limit position
+    const filteredResults = initialResults.filter(r => Number(r.totalSpots) >= Number(limitThreshold));
+
+    // Get member details and total contest points for each cheerleader
+    const cheerleaders = await Promise.all(
+      filteredResults.map(async (c) => {
+        const member = await this.getMember(c.memberCallsign);
+        
+        // Calculate total contest points (all-time or season-specific)
+        const contestPointsQuery = seasonYear
+          ? await db
+              .select({
+                totalPoints: sql<number>`COALESCE(SUM(${schema.operatorPoints.normalizedPoints}), 0)`.as('total_points'),
+              })
+              .from(schema.operatorPoints)
+              .innerJoin(
+                schema.submissions,
+                and(
+                  eq(schema.operatorPoints.submissionId, schema.submissions.id),
+                  eq(schema.submissions.isActive, true)
+                )
+              )
+              .where(
+                and(
+                  eq(schema.operatorPoints.memberCallsign, c.memberCallsign),
+                  eq(schema.submissions.seasonYear, seasonYear)
+                )
+              )
+          : await db
+              .select({
+                totalPoints: sql<number>`COALESCE(SUM(${schema.operatorPoints.normalizedPoints}), 0)`.as('total_points'),
+              })
+              .from(schema.operatorPoints)
+              .innerJoin(
+                schema.submissions,
+                and(
+                  eq(schema.operatorPoints.submissionId, schema.submissions.id),
+                  eq(schema.submissions.isActive, true)
+                )
+              )
+              .where(eq(schema.operatorPoints.memberCallsign, c.memberCallsign));
+
+        const contestPoints = Math.round(Number(contestPointsQuery[0]?.totalPoints || 0));
+        const cheerPoints = Number(c.cheerleaderPoints);
+        
+        return {
+          memberCallsign: c.memberCallsign,
+          firstName: member?.firstName || '',
+          lastName: member?.lastName || '',
+          totalSpots: Number(c.totalSpots),
+          cheerleaderPoints: cheerPoints,
+          contestPoints: contestPoints,
+          totalScore: contestPoints + cheerPoints,
+        };
+      })
+    );
+
+    return cheerleaders;
+  }
+
+  async getAllCheerleaderPointsForMember(memberCallsign: string): Promise<CheerleaderPoints[]> {
+    return db
+      .select()
+      .from(schema.cheerleaderPoints)
+      .where(eq(schema.cheerleaderPoints.memberCallsign, memberCallsign))
+      .orderBy(desc(schema.cheerleaderPoints.seasonYear));
   }
 }
 
