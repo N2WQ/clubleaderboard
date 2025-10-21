@@ -25,7 +25,7 @@ function Router() {
       <Route path="/operator/:callsign" component={OperatorDetailPage} />
       <Route path="/contest/:key" component={ContestDetailPage} />
       <Route path="/contests" component={ContestsListPage} />
-      <Route path="/skipper" component={AdminPage} />
+      <Route path="/admin" component={AdminPage} />
       <Route path="/submission/:id" component={SubmissionDetailPage} />
       <Route path="/submissions" component={AllSubmissionsPage} />
       <Route path="/members" component={MembersListPage} />
