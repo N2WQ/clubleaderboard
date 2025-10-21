@@ -12,6 +12,8 @@ interface ScoreboardEntry {
   rank: number;
   callsign: string;
   claimedScore: number;
+  contestPoints?: number;
+  cheerleaderPoints?: number;
   normalizedPoints: number;
   contests: number;
 }
@@ -29,8 +31,10 @@ export function ScoreboardTable({ entries }: ScoreboardTableProps) {
             <TableHead className="w-20">Rank</TableHead>
             <TableHead>Callsign</TableHead>
             <TableHead className="text-right">Contests</TableHead>
-            <TableHead className="text-right">Claimed Points</TableHead>
-            <TableHead className="text-right">YCCC Points</TableHead>
+            <TableHead className="text-right">Claimed</TableHead>
+            <TableHead className="text-right">Contest Pts</TableHead>
+            <TableHead className="text-right">Cheer Pts</TableHead>
+            <TableHead className="text-right">Award Pts</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -51,8 +55,14 @@ export function ScoreboardTable({ entries }: ScoreboardTableProps) {
                   </button>
                 </Link>
               </TableCell>
-              <TableCell className="text-right font-mono">
+              <TableCell className="text-right font-mono text-xs">
                 {Math.round(entry.claimedScore).toLocaleString()}
+              </TableCell>
+              <TableCell className="text-right font-mono text-xs">
+                {Math.round(entry.contestPoints || 0).toLocaleString()}
+              </TableCell>
+              <TableCell className="text-right font-mono text-xs">
+                {Math.round(entry.cheerleaderPoints || 0).toLocaleString()}
               </TableCell>
               <TableCell className="text-right font-mono font-semibold text-primary">
                 <Link href={`/submissions?callsign=${entry.callsign}`}>

@@ -9,6 +9,7 @@ import { StatCard } from "@/components/StatCard";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient } from "@/lib/queryClient";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -25,6 +26,13 @@ export default function AdminPage() {
   const [selectedContest, setSelectedContest] = useState("");
   const [selectedYear, setSelectedYear] = useState("");
   const [selectedMode, setSelectedMode] = useState("");
+  
+  const [clusterEnabled, setClusterEnabled] = useState(false);
+  const [clusterFqdn, setClusterFqdn] = useState("");
+  const [clusterPort, setClusterPort] = useState("");
+  const [clusterCallsign, setClusterCallsign] = useState("");
+  const [cheerleaderPoints, setCheerleaderPoints] = useState("");
+  
   const { toast } = useToast();
   const currentYear = new Date().getFullYear();
 
@@ -43,6 +51,58 @@ export default function AdminPage() {
       const res = await fetch("/api/admin/scoring-method");
       if (!res.ok) throw new Error("Failed to fetch scoring method");
       return res.json();
+    },
+  });
+
+  const { data: clusterConfig } = useQuery({
+    queryKey: ["/api/admin/cluster-config"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/cluster-config");
+      if (!res.ok) throw new Error("Failed to fetch cluster config");
+      const data = await res.json();
+      setClusterEnabled(data.enabled);
+      setClusterFqdn(data.fqdn);
+      setClusterPort(String(data.port));
+      setClusterCallsign(data.loginCallsign);
+      setCheerleaderPoints(String(data.pointsPerSpot));
+      return data;
+    },
+  });
+
+  const updateClusterConfigMutation = useMutation({
+    mutationFn: async (config: {
+      enabled?: boolean;
+      fqdn?: string;
+      port?: number;
+      loginCallsign?: string;
+      pointsPerSpot?: number;
+    }) => {
+      const res = await fetch("/api/admin/cluster-config", {
+        method: "POST",
+        body: JSON.stringify(config),
+        headers: { "Content-Type": "application/json" },
+      });
+      
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Update failed");
+      }
+      
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/cluster-config"] });
+      toast({
+        title: "Cluster Config Updated",
+        description: data.message || "Configuration has been updated successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        variant: "destructive",
+        title: "Update Failed",
+        description: error.message,
+      });
     },
   });
 
@@ -625,6 +685,94 @@ export default function AdminPage() {
                   <p className="text-sm font-medium text-blue-600 dark:text-blue-400">Note: After changing scoring method</p>
                   <p className="text-xs text-muted-foreground mt-1">
                     Use the "Recompute All Contests" button below to apply the new scoring method to all existing contest data.
+                  </p>
+                </div>
+              </div>
+            </Card>
+
+            <Card className="p-6">
+              <h3 className="text-xl font-semibold mb-4">DX Cluster Configuration</h3>
+              <p className="text-sm text-muted-foreground mb-6">
+                Configure the DX Cluster connection for awarding cheerleader points when members spot other YCCC members
+              </p>
+
+              <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="cluster-enabled">Enable DX Cluster Monitoring</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Automatically award points when members spot other YCCC members
+                    </p>
+                  </div>
+                  <Switch
+                    id="cluster-enabled"
+                    checked={clusterEnabled}
+                    onCheckedChange={(checked) => {
+                      setClusterEnabled(checked);
+                      updateClusterConfigMutation.mutate({ enabled: checked });
+                    }}
+                    data-testid="switch-cluster-enabled"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="cluster-fqdn">Cluster FQDN</Label>
+                  <Input
+                    id="cluster-fqdn"
+                    value={clusterFqdn}
+                    onChange={(e) => setClusterFqdn(e.target.value)}
+                    onBlur={() => updateClusterConfigMutation.mutate({ fqdn: clusterFqdn })}
+                    placeholder="dxc.w6cua.org"
+                    data-testid="input-cluster-fqdn"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="cluster-port">Cluster Port</Label>
+                  <Input
+                    id="cluster-port"
+                    type="number"
+                    value={clusterPort}
+                    onChange={(e) => setClusterPort(e.target.value)}
+                    onBlur={() => updateClusterConfigMutation.mutate({ port: parseInt(clusterPort, 10) })}
+                    placeholder="7300"
+                    data-testid="input-cluster-port"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="cluster-callsign">Login Callsign</Label>
+                  <Input
+                    id="cluster-callsign"
+                    value={clusterCallsign}
+                    onChange={(e) => setClusterCallsign(e.target.value.toUpperCase())}
+                    onBlur={() => updateClusterConfigMutation.mutate({ loginCallsign: clusterCallsign })}
+                    placeholder="AJ1I"
+                    data-testid="input-cluster-callsign"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="cheerleader-points">Points Per Spot</Label>
+                  <Input
+                    id="cheerleader-points"
+                    type="number"
+                    value={cheerleaderPoints}
+                    onChange={(e) => setCheerleaderPoints(e.target.value)}
+                    onBlur={() => updateClusterConfigMutation.mutate({ pointsPerSpot: parseInt(cheerleaderPoints, 10) })}
+                    placeholder="100"
+                    data-testid="input-points-per-spot"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Number of cheerleader points awarded for each qualifying spot
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                  <p className="text-sm font-medium text-blue-600 dark:text-blue-400">Cheerleader Points System</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    When a YCCC member with valid dues spots another YCCC member on the cluster, they earn cheerleader points. 
+                    Automated spots (callsigns containing -#) are filtered out. YCCC Award Points = Contest Points + Cheerleader Points.
                   </p>
                 </div>
               </div>

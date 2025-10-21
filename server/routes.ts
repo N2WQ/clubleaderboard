@@ -9,6 +9,7 @@ import { fetchYCCCRoster, isDuesValidForYear } from "./roster-scraper";
 import { setupWebSocket, broadcast } from "./websocket";
 import { startScheduler } from "./scheduler";
 import { sendEmail, createSubmissionConfirmationEmail } from "./email-service";
+import { clusterClient } from "./cluster-client";
 
 const upload = multer({ 
   storage: multer.memoryStorage(),
@@ -254,6 +255,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(logs);
     } catch (error) {
       console.error("Recent logs error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.get("/api/insights/top-cheerleaders", async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 5;
+      const seasonYear = req.query.year ? parseInt(req.query.year as string) : undefined;
+      const cheerleaders = await storage.getTopCheerleaders(limit, seasonYear);
+      res.json(cheerleaders);
+    } catch (error) {
+      console.error("Top cheerleaders error:", error);
       res.status(500).json({ error: "Internal server error" });
     }
   });
@@ -749,10 +762,95 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/admin/cluster-config", async (req, res) => {
+    try {
+      const enabledConfig = await storage.getScoringConfig('cluster_enabled');
+      const fqdnConfig = await storage.getScoringConfig('cluster_fqdn');
+      const portConfig = await storage.getScoringConfig('cluster_port');
+      const callsignConfig = await storage.getScoringConfig('cluster_login_callsign');
+      const pointsConfig = await storage.getScoringConfig('cheerleader_points_per_spot');
+
+      res.json({
+        enabled: enabledConfig?.value === 'true',
+        fqdn: fqdnConfig?.value || 'dxc.w6cua.org',
+        port: parseInt(portConfig?.value || '7300', 10),
+        loginCallsign: callsignConfig?.value || 'AJ1I',
+        pointsPerSpot: parseInt(pointsConfig?.value || '100', 10),
+      });
+    } catch (error) {
+      console.error("Get cluster config error:", error);
+      res.status(500).json({ error: "Failed to get cluster configuration" });
+    }
+  });
+
+  app.post("/api/admin/cluster-config", async (req, res) => {
+    try {
+      const { enabled, fqdn, port, loginCallsign, pointsPerSpot } = req.body;
+
+      if (enabled !== undefined) {
+        await storage.setScoringConfig({
+          key: 'cluster_enabled',
+          value: String(enabled),
+        });
+      }
+
+      if (fqdn !== undefined) {
+        await storage.setScoringConfig({
+          key: 'cluster_fqdn',
+          value: fqdn,
+        });
+      }
+
+      if (port !== undefined) {
+        await storage.setScoringConfig({
+          key: 'cluster_port',
+          value: String(port),
+        });
+      }
+
+      if (loginCallsign !== undefined) {
+        await storage.setScoringConfig({
+          key: 'cluster_login_callsign',
+          value: loginCallsign,
+        });
+      }
+
+      if (pointsPerSpot !== undefined) {
+        await storage.setScoringConfig({
+          key: 'cheerleader_points_per_spot',
+          value: String(pointsPerSpot),
+        });
+      }
+
+      res.json({
+        success: true,
+        message: 'Cluster configuration updated. Restart the server for changes to take effect.',
+      });
+    } catch (error) {
+      console.error("Set cluster config error:", error);
+      res.status(500).json({ error: "Failed to update cluster configuration" });
+    }
+  });
+
+  app.get("/api/cluster/status", async (req, res) => {
+    try {
+      const status = clusterClient.getStatus();
+      res.json(status);
+    } catch (error) {
+      console.error("Get cluster status error:", error);
+      res.status(500).json({ error: "Failed to get cluster status" });
+    }
+  });
+
   const httpServer = createServer(app);
   
   setupWebSocket(httpServer);
   startScheduler();
+  
+  // Start DX cluster client for cheerleader points
+  clusterClient.start().catch(err => {
+    console.error('Failed to start cluster client:', err);
+  });
 
   return httpServer;
 }

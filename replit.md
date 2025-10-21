@@ -1,7 +1,7 @@
 # YCCC Contest Award Scoring System
 
 ## Overview
-This project is an automated scoring system for the Yankee Clipper Contest Club (YCCC) ham radio contests, named "YCCC Awards Program." It processes Cabrillo log files, validates club membership and categories, calculates normalized scores using a defined formula, and displays results on a live scoreboard. The system supports historical data viewing and aims to provide a professional, data-focused platform for tracking contest performance.
+The YCCC Awards Program is an automated scoring system for the Yankee Clipper Contest Club's ham radio contests. It processes Cabrillo log files, validates club membership, calculates normalized scores based on contest performance and DX cluster spotting activity (Cheerleader Points), and displays results on live and historical leaderboards. The system aims to provide a professional, data-focused platform for tracking YCCC Award Points, combining Contest Points and Cheerleader Points for a comprehensive view of member performance.
 
 ## User Preferences
 - **Default theme**: Dark mode (set in ThemeProvider)
@@ -12,77 +12,46 @@ This project is an automated scoring system for the Yankee Clipper Contest Club 
 ## System Architecture
 
 ### Stack
-- **Frontend**: React + Vite, TailwindCSS, Shadcn UI, Wouter (routing), TanStack Query
+- **Frontend**: React + Vite, TailwindCSS, Shadcn UI, Wouter, TanStack Query
 - **Backend**: Express.js, PostgreSQL (Neon), Drizzle ORM
-- **File Processing**: Multer (uploads), PapaParse (CSV parsing)
+- **File Processing**: Multer, PapaParse
 
 ### Technical Implementations
-- **Cabrillo Log Processing**: Parses Cabrillo files to extract contest, callsign, claimed score, operators, club, and mode. Enhanced to detect "Yankee Clipper Contest Club" or "YCCC" even when CLUB field contains multiple club names. The CONTEST field becomes the unique contest identifier (contestKey).
-- **Contest Identification**: Contests are uniquely identified by the CONTEST field from Cabrillo logs (stored as contestKey). MODE is captured separately for display purposes only and is not used for contest identification or scoring calculations.
-- **Dues Validation & Inclusive Scoring**: Validates operator dues against a roster. Submissions are accepted if at least one operator has valid dues; only operators with current dues are scored. Operators with expired dues are excluded from scoring calculations with a warning.
-- **Configurable Scoring System**: Administrators can choose between two scoring methods via the Admin panel:
-  - **Fixed Method**: Uses a fixed maximum of 1,000,000 points for all contests. Formula: `(IndividualClaimed / ReferenceScore) × 1,000,000`
-  - **Participant-Based Method** (default): Dynamic maximum based on number of submitted logs. Formula: `(IndividualClaimed / ReferenceScore) × min(numberOfLogs × 50,000, 1,000,000)`. Counts all submitted logs for each contest/year. Maximum cap of 1,000,000 points (20 logs).
-- **Scoring Engine**: Implements normalized scoring using the selected method. Scores are calculated one log at a time for each contest/year:
-  1. **Reference Score (Baseline)**: The highest individual claimed score from ALL submissions (both single-op and multi-op). Individual claimed = (Claimed Score ÷ Number of Operators).
-  2. **Maximum Contest Score**: 50,000 × (Number of Logs), capped at 1,000,000.
-  3. **Individual YCCC Points**: `(IndividualClaimed / ReferenceScore) × MaximumContestScore`. All points are rounded to whole numbers.
-- **Baseline Calculation**: Dynamically computes the highest individual claimed score from ALL submissions for each contest (identified by contestKey) to establish the reference baseline for normalization. Baselines are stored by (seasonYear, contestKey) only.
-- **Duplicate Submission Handling**: Ensures that only the latest submission for a given callsign, contest, and year is active, deactivating previous submissions. Deactivation targets (callsign, contestKey, year) regardless of MODE.
-- **Dynamic Contest Year Parsing**: Extracts the contest year directly from QSO record dates in Cabrillo logs, allowing for historical data analysis and year-specific leaderboards.
-- **Dense Ranking**: Leaderboards utilize dense ranking (e.g., 1,1,1,2) for ties.
-- **Points Rounding**: Both individual claimed points and YCCC Points (normalized points) are rounded to whole numbers for storage and display.
-- **Perpetual Scoring**: Provides both current season and all-time aggregated leaderboards.
-- **Multiple File Upload**: Supports simultaneous upload of multiple Cabrillo log files.
-- **Admin Functionality**: Includes features for syncing the member roster from the YCCC website and clearing all contest data.
-- **Members List**: Clickable Active Members stat card links to /members page showing all eligible members with current dues for the season. Displays callsign, name, dues expiration, and aliases in a sortable table.
-- **Contest Insights**: Homepage displays three insight boxes showing all-time data (independent of leaderboard tab selection):
-  - **Most Recent Logs**: Shows 5 most recent operator entries from accepted submissions. Displays member operator callsign (muted text) with achievement icons, and contest key as blue clickable link to submission detail page. Bottom section shows total all-time logs count. Queries operator_points table to show individual operators, not station callsigns. API: `/api/insights/recent-logs` returns latest 5 operator entries with totalScore for achievement tier determination.
-  - **Most Active Operators**: Top 5 operators by number of submitted logs (all-time) with tie handling. Displays entry count without ranking numbers, with achievement icons next to operator callsigns. Links to operator detail pages. Bottom section shows "X/Y Active Members" as clickable link to /members page. API: `/api/insights/active-operators` returns top 5+ (including ties) with totalScore for achievement icons.
-  - **Most Competitive Contests**: Top 5 contests by submission count (all-time) with tie handling. Displays submission count without ranking numbers. Links to contest detail pages. Bottom section shows "X Contests Tracked" as clickable link to /contests page. API: `/api/insights/competitive-contests` returns top 5+ (including ties) based on all-time submissions.
-  - All insight boxes remain static when switching leaderboard tabs. Stats at bottom use all-time data from `/api/stats` endpoint (no year filter). APIs fetch 100 records initially, then filter to include all records that tie with 5th place, ensuring complete rankings. Counts are cast to integers to ensure numeric values.
-- **Operator Detail Page**: New page at `/operator/:callsign` shows comprehensive operator history. Displays all-time rank, total YCCC points, total contests, and a detailed table of all submissions. API: `/api/operator/:callsign`.
-- **Year Display**: All submission and contest result views display the contest year extracted from QSO dates in the Cabrillo log, not the submission timestamp. This ensures accurate historical tracking.
-- **Interactive Insights**: Entry count and submission count links in homepage insight cards are clickable. Clicking submission count in "Most Competitive Contests" navigates to contest detail page; clicking entry count in "Most Active Operators" navigates to operator detail page.
-- **Contest List Page**: The /contests page displays all contests for the current season with submission counts shown on each card. Each count is displayed as a number followed by "log" or "logs" (e.g., "4 logs"), styled in primary blue color as a clickable link that navigates to the contest detail page showing all submissions. Only accepted submissions are counted.
-- **Real-Time Updates**: WebSocket-based live updates automatically refresh the homepage when new logs are uploaded or roster is synced. No manual page refresh required. Server broadcasts "submission:created" and "roster:synced" events to all connected clients.
-- **Automatic Daily Roster Sync**: Scheduler runs roster synchronization from yccc.org immediately on server startup and then every 24 hours. Ensures member roster stays current automatically without manual intervention.
-- **Email Confirmations**: Optional email confirmation system using Gmail integration. Upload form includes email field; when provided, sends professional HTML confirmation email upon successful log acceptance. Email addresses are not stored - only used for immediate notification. System gracefully handles email failures without blocking submissions.
-- **Performance Optimizations (Oct 2025)**: Comprehensive optimizations implemented across entire system to resolve production 504 timeout errors and improve regular upload performance:
-  - **Database Indexes**: Added 9 strategic indexes on submissions and operatorPoints tables for seasonYear, contestKey, callsign, status, isActive, submissionId, memberCallsign, plus composite indexes (seasonYear+contestKey) and (isActive+status).
-  - **CSV Import N+1 Query Elimination**: Moved member roster and existing submission lookups outside CSV processing loop, using in-memory caching for O(1) lookups during row validation.
-  - **Regular Upload Optimization**: Eliminated duplicate submission queries by caching and reusing results. Pass cached data to recomputeBaseline() and calculateMaxPoints() to avoid redundant queries.
-  - **Batch Operations**: Operator points now created in single batch insert instead of individual inserts per submission. Applied to both CSV import and regular upload flows.
-  - **Optimized recomputeBaseline()**: Refactored from O(n) DELETE + O(n×m) INSERT to single batch DELETE + single batch INSERT. For contests with 100 submissions × 2 operators: reduced from 300 queries to 2 queries.
-  - **Fixed CSV Import Duplication**: Removed duplicate operator points deletion/creation that was happening after recomputeBaseline() already did the work.
-  - **Performance Impact**: 
-    - CSV import: 100-row import reduced from ~300+ queries to ~5 queries
-    - Regular upload: Per-file upload reduced from ~303 queries to ~4 queries (75x faster for large contests)
-    - Eliminates timeout errors on large historical imports and busy upload periods
-- **Leaderboard Data Integrity (Oct 2025)**: Fixed critical bug where leaderboard queries included operator points from inactive submissions, causing inflated scores and duplicate entries. All queries joining operator_points with submissions now filter by `isActive = true`. Affects: getSeasonLeaderboard(), getAllTimeLeaderboard(), getMemberContestHistory(). System automatically cleaned 7 orphaned operator_points entries from inactive submissions.
+- **Cabrillo Log Processing**: Parses Cabrillo files for contest, callsign, score, operators, club, and mode. Supports dynamic contest year parsing from QSO dates.
+- **Dues Validation & Inclusive Scoring**: Validates operator dues against a roster; only operators with current dues are scored.
+- **Configurable Scoring System**: Administrators can choose between "Fixed" (fixed 1M max points) or "Participant-Based" (dynamic max based on logs, capped at 1M) normalized scoring methods.
+- **Scoring Engine**: Calculates YCCC Award Points by normalizing individual claimed scores against a dynamic reference baseline (highest individual claimed score) and combining with Cheerleader Points. All points are rounded to whole numbers.
+- **Duplicate Submission Handling**: Ensures only the latest submission for a given callsign, contest, and year is active.
+- **Dense Ranking**: Leaderboards use dense ranking for ties.
+- **Perpetual Scoring**: Provides current season and all-time aggregated leaderboards.
+- **Multiple File Upload**: Supports simultaneous upload of multiple Cabrillo logs.
+- **Admin Functionality**: Features for syncing member roster and clearing contest data.
+- **Interactive Insights**: Homepage displays "Most Recent Logs", "Most Active Operators", "Most Competitive Contests", and "Top Cheerleaders" with achievement icons and clickable links to detailed pages.
+- **Real-Time Updates**: WebSocket-based live updates for new log uploads and roster syncs.
+- **Automatic Daily Roster Sync**: Scheduler syncs member roster from YCCC website daily.
+- **Email Confirmations**: Optional HTML email confirmations for successful log submissions.
+- **Performance Optimizations**: Implemented database indexing, N+1 query elimination, batch operations, and optimized baseline computations to enhance system performance and stability.
+- **Leaderboard Data Integrity**: Ensures leaderboard queries only include operator points from active submissions.
+- **Cheerleader Points System**: Monitors DX telnet clusters, awards configurable points when eligible members spot other YCCC members, and integrates these points into leaderboards.
 
 ### UI/UX Decisions
-- **Layout**: Clean, minimal design with tabs for different leaderboard views ordered as: All-Time (default), Current Year, Historical.
-- **Information Density**: Focuses on displaying key data clearly, with clickable elements for detailed views. Homepage features streamlined 2-card layout combining stats with top performer lists.
-- **Branding**: Renamed to "YCCC Awards Program" to reflect a broader scope.
-- **Homepage Cards**: Two combined cards - (1) Active Members + Most Active Operators, (2) Contests Tracked + Most Competitive Contests. Each card has clickable stat area with navigation and informational list below.
-- **Leaderboard Display**: Clean tabbed interface without summary text. All-Time tab is the default view.
-- **Achievement Icons**: Insight boxes (Most Recent Logs and Most Active Operators) display achievement icons next to operator callsigns based on all-time total YCCC points:
-  - **Trophy icon** (gold) for operators with 5M+ points - "Elite Performer"
-  - **Medal icon** (gold) for operators with 1M-5M points - "High Achiever"
-  - **Star icon** (gold) for operators with 500K-1M points - "Runner Up"
-  - Icons use Lucide React components in gold/yellow color (text-yellow-500) with accessible screen-reader labels, positioned after callsign in insight boxes only (not on leaderboard tables).
-  - **Achievement Legend**: Centered legend displayed below the three insight boxes explaining all achievement tiers with icons and labels.
+- **Layout**: Clean, minimal design with tabs for All-Time (default), Current Year, and Historical leaderboards.
+- **Information Density**: Focuses on clear data display, with clickable elements for detailed views.
+- **Branding**: "YCCC Awards Program" with a professional ham radio aesthetic.
+- **Homepage Cards**: Four insight cards with top 5 entries, achievement icons, and relevant stats, adapting to screen sizes.
+- **Achievement Icons**: Gold trophy, medal, and star icons indicate Elite Performer, High Achiever, and Runner Up tiers based on all-time YCCC points, with an accompanying legend.
 
 ### Database Schema
-- **members**: Stores callsign, active status, aliases, names, and dues expiration.
-- **submissions**: Records contest metadata, claimed scores, operator lists, MODE (for display), and status.
-- **raw_logs**: Stores the original Cabrillo file content.
-- **baselines**: Stores the highest single-claimed score for each contest/year. Unique key: (seasonYear, contestKey). MODE is not used in baseline calculations.
-- **operator_points**: Stores individual and normalized points for each scored member operator.
-- **scoring_config**: Stores key-value configuration for scoring method ('fixed' or 'participant-based') with update timestamps.
+- `members`: Callsign, active status, aliases, names, dues expiration.
+- `submissions`: Contest metadata, claimed scores, operators, mode, status.
+- `raw_logs`: Original Cabrillo file content.
+- `baselines`: Highest single-claimed score per contest/year.
+- `operator_points`: Individual and normalized points for each scored member operator.
+- `cheerleader_points`: Cumulative cheerleader points per member per season.
+- `scoring_config`: Key-value configuration for scoring method and DX cluster settings.
 
 ## External Dependencies
-- **PostgreSQL (Neon)**: Primary database for all application data.
-- **yccc.org/roster/**: Source for syncing the club member roster.
-- **Gmail API (via Replit connector)**: Sends confirmation emails for log submissions when email address is provided.
+- **PostgreSQL (Neon)**: Primary database.
+- **yccc.org/roster/**: Source for club member roster synchronization.
+- **DX Cluster (Telnet)**: Monitors spot messages (default: dxc.w6cua.org:7300).
+- **Gmail API (via Replit connector)**: Sends log submission confirmation emails.

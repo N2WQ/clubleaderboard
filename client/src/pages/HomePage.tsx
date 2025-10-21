@@ -29,12 +29,13 @@ export default function HomePage() {
   const [selectedYear, setSelectedYear] = useState<number>(currentYear);
 
   const handleWebSocketMessage = useCallback((message: { event: string; data: any }) => {
-    if (message.event === "submission:created" || message.event === "roster:synced") {
+    if (message.event === "submission:created" || message.event === "roster:synced" || message.event === "cheerleader:spot") {
       queryClient.invalidateQueries({ queryKey: ["/api/leaderboard"] });
       queryClient.invalidateQueries({ queryKey: ["/api/stats"] });
       queryClient.invalidateQueries({ queryKey: ["/api/insights/competitive-contests"] });
       queryClient.invalidateQueries({ queryKey: ["/api/insights/active-operators"] });
       queryClient.invalidateQueries({ queryKey: ["/api/insights/recent-logs"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/insights/top-cheerleaders"] });
       queryClient.invalidateQueries({ queryKey: ["/api/available-years"] });
     }
   }, []);
@@ -122,6 +123,16 @@ export default function HomePage() {
     staleTime: 5 * 60 * 1000,
   });
 
+  const { data: topCheerleaders = [] } = useQuery({
+    queryKey: ["/api/insights/top-cheerleaders"],
+    queryFn: async () => {
+      const res = await fetch(`/api/insights/top-cheerleaders?limit=5`);
+      if (!res.ok) throw new Error("Failed to fetch top cheerleaders");
+      return res.json();
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
   const leaderboard = 
     activeTab === "current" ? currentYearLeaderboard : 
     activeTab === "alltime" ? alltimeLeaderboard :
@@ -158,7 +169,7 @@ export default function HomePage() {
 
       <main className="container mx-auto px-4 py-12">
         <div className="mb-12">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <Card className="p-6 flex flex-col">
               <div className="flex items-center gap-2 mb-4">
                 <Clock className="h-4 w-4 text-primary" />
@@ -268,6 +279,44 @@ export default function HomePage() {
                     {alltimeStats?.contests?.length || 0} Contests Tracked
                   </p>
                 </Link>
+              </div>
+            </Card>
+
+            <Card className="p-6 flex flex-col">
+              <div className="flex items-center gap-2 mb-4">
+                <Radio className="h-4 w-4 text-primary" />
+                <h4 className="text-sm font-semibold">Top Cheerleaders</h4>
+              </div>
+              <div className="space-y-2 mb-4 flex-1">
+                {topCheerleaders.map((cheerleader: any, index: number) => {
+                  const achievement = getAchievementIcon(cheerleader.totalScore || 0);
+                  const AchievementIcon = achievement?.icon;
+                  
+                  return (
+                    <div key={cheerleader.memberCallsign} className="flex items-center justify-between text-sm" data-testid={`top-cheerleader-${index}`}>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono font-semibold text-muted-foreground">{cheerleader.memberCallsign}</span>
+                        {achievement && AchievementIcon && (
+                          <span className="inline-flex items-center" data-testid={`cheerleader-achievement-${index}`}>
+                            <AchievementIcon className={`h-3.5 w-3.5 ${achievement.color}`} />
+                            <span className="sr-only">{achievement.label}</span>
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-xs text-muted-foreground" data-testid={`cheerleader-spots-${index}`}>
+                        {cheerleader.totalSpots} {cheerleader.totalSpots === 1 ? 'spot' : 'spots'}
+                      </span>
+                    </div>
+                  );
+                })}
+                {topCheerleaders.length === 0 && (
+                  <p className="text-sm text-muted-foreground text-center py-2">No cheerleader points yet</p>
+                )}
+              </div>
+              <div className="pt-4 border-t border-border">
+                <p className="text-xs text-muted-foreground text-center">
+                  DX Cluster monitoring active
+                </p>
               </div>
             </Card>
           </div>
