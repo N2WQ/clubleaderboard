@@ -822,9 +822,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
+      // Automatically restart the cluster client to apply changes
+      await clusterClient.restart();
+
       res.json({
         success: true,
-        message: 'Cluster configuration updated. Restart the server for changes to take effect.',
+        message: 'Cluster configuration updated and applied successfully',
       });
     } catch (error) {
       console.error("Set cluster config error:", error);

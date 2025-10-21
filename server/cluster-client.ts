@@ -269,6 +269,13 @@ class ClusterClient {
     console.log('DX Cluster client stopped');
   }
 
+  async restart() {
+    console.log('Restarting DX Cluster client...');
+    this.stop();
+    this.isShuttingDown = false;
+    await this.start();
+  }
+
   getStatus() {
     return {
       connected: this.isConnected,
