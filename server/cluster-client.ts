@@ -167,6 +167,39 @@ class ClusterClient {
     }
   }
 
+  /**
+   * Normalize callsign by extracting base callsign from portable/DX formats
+   * Examples:
+   *   N2WQ/1 -> N2WQ
+   *   W1UE/qrp -> W1UE
+   *   V47/K5ZD -> K5ZD
+   *   LZ/K1XM/p -> K1XM
+   */
+  normalizeCallsign(callsign: string): string {
+    if (!callsign.includes('/')) {
+      return callsign;
+    }
+
+    // Split by slash to get all parts
+    const parts = callsign.split('/');
+    
+    // Ham radio callsign pattern: typically 1-2 letters, a digit, then 1-4 letters
+    // Example: N2WQ, K1XM, W1UE, AA1K, VE3XYZ
+    const callsignPattern = /^[A-Z]{1,2}\d[A-Z]{1,4}$/;
+    
+    // Find the part that matches the standard callsign pattern
+    for (const part of parts) {
+      if (callsignPattern.test(part)) {
+        return part;
+      }
+    }
+    
+    // Fallback: return the longest part (likely the base callsign)
+    return parts.reduce((longest, current) => 
+      current.length > longest.length ? current : longest
+    );
+  }
+
   parseSpot(line: string): SpotData | null {
     // DX spot format: "DX de SPOTTER: FREQUENCY SPOTTED COMMENT TIME"
     // Example: "DX de K1AR:     14.025 WK1O        Great signal!     1830Z"
@@ -200,18 +233,22 @@ class ClusterClient {
       // Refresh cache if needed
       await this.refreshMemberCache();
 
+      // Normalize callsigns to handle portable/DX formats
+      const normalizedSpotter = this.normalizeCallsign(spot.spotter);
+      const normalizedSpotted = this.normalizeCallsign(spot.spotted);
+
       // Filter 2: Spotter must be eligible YCCC member (valid dues)
-      if (!this.eligibleMemberCache.has(spot.spotter)) {
+      if (!this.eligibleMemberCache.has(normalizedSpotter)) {
         return;
       }
 
       // Filter 3: Spotted station must be any YCCC member
-      if (!this.memberCache.has(spot.spotted)) {
+      if (!this.memberCache.has(normalizedSpotted)) {
         return;
       }
 
-      // Award cheerleader points
-      await this.awardCheerleaderPoints(spot.spotter);
+      // Award cheerleader points (use normalized callsign for database)
+      await this.awardCheerleaderPoints(normalizedSpotter);
 
       console.log(`✓ Cheerleader spot: ${spot.spotter} spotted ${spot.spotted} on ${spot.frequency}`);
     } catch (error) {
