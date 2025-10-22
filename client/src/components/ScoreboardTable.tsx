@@ -31,7 +31,7 @@ export function ScoreboardTable({ entries }: ScoreboardTableProps) {
             <TableHead className="w-20">Rank</TableHead>
             <TableHead>Callsign</TableHead>
             <TableHead className="text-right">Contests</TableHead>
-            <TableHead className="text-right">Claimed</TableHead>
+            <TableHead className="text-right">Claimed Pts</TableHead>
             <TableHead className="text-right">Contest Pts</TableHead>
             <TableHead className="text-right">Cheer Pts</TableHead>
             <TableHead className="text-right">Award Pts</TableHead>
