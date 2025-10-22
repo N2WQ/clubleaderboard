@@ -180,6 +180,9 @@ export default function HomePage() {
 
       <main className="container mx-auto px-4 py-12">
         <div className="mb-12">
+          <p className="text-center text-muted-foreground mb-8 max-w-4xl mx-auto">
+            Our club has always strived to achieve top scores in major contests where club competition is offered. We encourage members to participate in as many contests as possible throughout the year, honing their skills, building butt-in-chair stamina, and improving their stations.
+          </p>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <Card className="p-6 flex flex-col">
               <div className="flex items-center gap-2 mb-4">
