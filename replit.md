@@ -32,7 +32,7 @@ The YCCC Awards Program is an automated scoring system for the Yankee Clipper Co
 - **Email Confirmations**: Optional HTML email confirmations for successful log submissions.
 - **Performance Optimizations**: Implemented database indexing, N+1 query elimination, batch operations, and optimized baseline computations to enhance system performance and stability.
 - **Leaderboard Data Integrity**: Ensures leaderboard queries only include operator points from active submissions.
-- **Cheerleader Points System**: Monitors DX telnet clusters, awards configurable points when eligible members spot other YCCC members, and integrates these points into leaderboards.
+- **Cheerleader Points System**: Monitors DX telnet clusters, awards configurable points when eligible members spot other YCCC members, and integrates these points into leaderboards. Includes callsign normalization to handle portable/DX prefix formats (e.g., N2WQ/1, V47/K5ZD, LZ/K1XM/p).
 
 ### UI/UX Decisions
 - **Layout**: Clean, minimal design with tabs for All-Time (default), Current Year, and Historical leaderboards.
