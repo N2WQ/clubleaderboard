@@ -37,6 +37,7 @@ export default function HomePage() {
       queryClient.invalidateQueries({ queryKey: ["/api/insights/recent-logs"] });
       queryClient.invalidateQueries({ queryKey: ["/api/insights/top-cheerleaders"] });
       queryClient.invalidateQueries({ queryKey: ["/api/available-years"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/cluster/status"] });
     }
   }, []);
 
@@ -131,6 +132,16 @@ export default function HomePage() {
       return res.json();
     },
     staleTime: 5 * 60 * 1000,
+  });
+
+  const { data: clusterStatus } = useQuery({
+    queryKey: ["/api/cluster/status"],
+    queryFn: async () => {
+      const res = await fetch(`/api/cluster/status`);
+      if (!res.ok) throw new Error("Failed to fetch cluster status");
+      return res.json();
+    },
+    staleTime: 30 * 1000, // 30 seconds
   });
 
   const leaderboard = 
@@ -314,8 +325,16 @@ export default function HomePage() {
                 )}
               </div>
               <div className="pt-4 border-t border-border">
-                <p className="text-xs text-muted-foreground text-center">
-                  DX Cluster monitoring active
+                <p className="text-xs text-muted-foreground text-center" data-testid="cluster-status-message">
+                  {clusterStatus?.config?.enabled ? (
+                    clusterStatus?.connected ? (
+                      "DX Cluster monitoring active"
+                    ) : (
+                      "DX Cluster enabled (connecting...)"
+                    )
+                  ) : (
+                    "DX Cluster monitoring disabled"
+                  )}
                 </p>
               </div>
             </Card>
