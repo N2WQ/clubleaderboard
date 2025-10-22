@@ -327,7 +327,7 @@ export default function HomePage() {
               <div className="pt-4 border-t border-border">
                 <div className="flex items-center justify-center gap-2">
                   <div 
-                    className={`h-2 w-2 rounded-full ${
+                    className={`h-3 w-3 rounded-full ${
                       clusterStatus?.config?.enabled 
                         ? clusterStatus?.connected 
                           ? 'bg-green-500' 
