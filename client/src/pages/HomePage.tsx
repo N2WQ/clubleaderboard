@@ -494,7 +494,7 @@ export default function HomePage() {
                     </p>
                     <ul className="list-disc list-inside space-y-2 text-muted-foreground ml-4">
                       <li>
-                        <strong className="text-foreground">Eligibility:</strong> Only the spotter must be an active YCCC member with current dues for the season. The spotted callsign can be any station.
+                        <strong className="text-foreground">Eligibility:</strong> The spotter must be an active YCCC member with current dues for the season. The spotted callsign must be a YCCC member (but doesn't need current dues).
                       </li>
                       <li>
                         <strong className="text-foreground">Points Per Spot:</strong> Each valid spot earns the spotter {clusterStatus?.config?.pointsPerSpot || 100} points.
