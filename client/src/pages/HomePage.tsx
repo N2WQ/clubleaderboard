@@ -1,6 +1,6 @@
 import { ScoreboardTable } from "@/components/ScoreboardTable";
 import { StatCard } from "@/components/StatCard";
-import { Users, Radio, Upload, Trophy, Target, Clock, Medal, Star } from "lucide-react";
+import { Users, Radio, Upload, Trophy, Target, Clock, Medal, Star, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
@@ -383,6 +383,10 @@ export default function HomePage() {
               <TabsTrigger value="historical" data-testid="tab-historical">
                 Historical
               </TabsTrigger>
+              <TabsTrigger value="help" data-testid="tab-help">
+                <HelpCircle className="h-4 w-4 mr-2" />
+                Help
+              </TabsTrigger>
             </TabsList>
             
             {activeTab === "historical" && (
@@ -432,6 +436,158 @@ export default function HomePage() {
             ) : (
               <ScoreboardTable entries={leaderboard} />
             )}
+          </TabsContent>
+
+          <TabsContent value="help" data-testid="content-help">
+            <div className="max-w-4xl mx-auto">
+              <Card className="p-8">
+                <h2 className="text-2xl font-semibold mb-6">How Scoring Works</h2>
+                
+                <div className="space-y-6 text-sm">
+                  <section>
+                    <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                      <Trophy className="h-5 w-5 text-primary" />
+                      YCCC Award Points
+                    </h3>
+                    <p className="text-muted-foreground mb-2">
+                      Your total YCCC Award Points is the sum of your Contest Points and Cheerleader Points:
+                    </p>
+                    <div className="bg-muted/50 p-4 rounded-md font-mono text-center">
+                      YCCC Award Points = Contest Points + Cheerleader Points
+                    </div>
+                  </section>
+
+                  <section>
+                    <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                      <Target className="h-5 w-5 text-primary" />
+                      Contest Points
+                    </h3>
+                    <p className="text-muted-foreground mb-3">
+                      Contest Points are calculated using a normalized scoring system that ensures fair comparison across different contests:
+                    </p>
+                    <ol className="list-decimal list-inside space-y-2 text-muted-foreground ml-4">
+                      <li>
+                        <strong className="text-foreground">Individual Score Calculation:</strong> For multi-operator logs, we divide the claimed score by the number of valid YCCC operators to get each operator's individual contribution.
+                      </li>
+                      <li>
+                        <strong className="text-foreground">Normalization:</strong> Each operator's individual score is normalized against the highest individual score in that contest using this formula:
+                        <div className="bg-muted/50 p-3 rounded-md font-mono text-xs mt-2">
+                          Contest Points = (Your Individual Score / Highest Individual Score) × Max Points
+                        </div>
+                      </li>
+                      <li>
+                        <strong className="text-foreground">Max Points:</strong> The maximum possible points per contest is configurable by administrators (default: 1,000,000 points or dynamic based on participation).
+                      </li>
+                      <li>
+                        <strong className="text-foreground">Accumulation:</strong> Your total Contest Points is the sum across all contests you've participated in.
+                      </li>
+                    </ol>
+                  </section>
+
+                  <section>
+                    <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                      <Radio className="h-5 w-5 text-primary" />
+                      Cheerleader Points
+                    </h3>
+                    <p className="text-muted-foreground mb-3">
+                      Cheerleader Points reward members for spotting other YCCC members on DX telnet clusters:
+                    </p>
+                    <ul className="list-disc list-inside space-y-2 text-muted-foreground ml-4">
+                      <li>
+                        <strong className="text-foreground">Eligibility:</strong> Both the spotter and spotted callsign must be active YCCC members with current dues for the season.
+                      </li>
+                      <li>
+                        <strong className="text-foreground">Points Per Spot:</strong> Each valid spot earns the spotter a configurable number of points (default: 100 points).
+                      </li>
+                      <li>
+                        <strong className="text-foreground">Callsign Normalization:</strong> The system recognizes portable and DX prefixes (e.g., N2WQ/1, V47/K5ZD, LZ/K1XM/p) and correctly attributes spots to base callsigns.
+                      </li>
+                      <li>
+                        <strong className="text-foreground">Season Tracking:</strong> Cheerleader Points are tracked per season and accumulate over time.
+                      </li>
+                    </ul>
+                  </section>
+
+                  <section>
+                    <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                      <Users className="h-5 w-5 text-primary" />
+                      Eligibility Requirements
+                    </h3>
+                    <ul className="list-disc list-inside space-y-2 text-muted-foreground ml-4">
+                      <li>
+                        <strong className="text-foreground">Club Membership:</strong> All logs must show "Yankee Clipper Contest Club" as the club affiliation.
+                      </li>
+                      <li>
+                        <strong className="text-foreground">Current Dues:</strong> Operators must have dues paid through December 31st of the contest year to receive points.
+                      </li>
+                      <li>
+                        <strong className="text-foreground">Multi-Operator Logs:</strong> All valid YCCC operators listed in the log receive equal Contest Points. Operators with expired dues are excluded from scoring.
+                      </li>
+                      <li>
+                        <strong className="text-foreground">Duplicate Submissions:</strong> If you submit multiple logs for the same contest/year, only the most recent submission counts.
+                      </li>
+                    </ul>
+                  </section>
+
+                  <section>
+                    <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                      <Medal className="h-5 w-5 text-primary" />
+                      Achievement Tiers
+                    </h3>
+                    <p className="text-muted-foreground mb-3">
+                      Achievement icons are displayed based on your total all-time YCCC Award Points:
+                    </p>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-md">
+                        <Trophy className="h-5 w-5 text-yellow-500" />
+                        <div>
+                          <strong className="text-foreground">Elite Performer:</strong>
+                          <span className="text-muted-foreground ml-2">5,000,000+ points</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-md">
+                        <Medal className="h-5 w-5 text-yellow-500" />
+                        <div>
+                          <strong className="text-foreground">High Achiever:</strong>
+                          <span className="text-muted-foreground ml-2">1,000,000 - 4,999,999 points</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-md">
+                        <Star className="h-5 w-5 text-yellow-500" />
+                        <div>
+                          <strong className="text-foreground">Runner Up:</strong>
+                          <span className="text-muted-foreground ml-2">500,000 - 999,999 points</span>
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+
+                  <section>
+                    <h3 className="text-lg font-semibold mb-3">Leaderboard Rankings</h3>
+                    <ul className="list-disc list-inside space-y-2 text-muted-foreground ml-4">
+                      <li>
+                        <strong className="text-foreground">Dense Ranking:</strong> Operators with identical YCCC Award Points share the same rank, with no gaps in ranking numbers.
+                      </li>
+                      <li>
+                        <strong className="text-foreground">All-Time:</strong> Aggregates all Contest Points and Cheerleader Points across all years.
+                      </li>
+                      <li>
+                        <strong className="text-foreground">Current Year:</strong> Shows only Contest Points and Cheerleader Points earned in {currentYear}.
+                      </li>
+                      <li>
+                        <strong className="text-foreground">Historical:</strong> View Contest Points and Cheerleader Points from previous years.
+                      </li>
+                    </ul>
+                  </section>
+
+                  <section className="pt-4 border-t border-border">
+                    <p className="text-xs text-muted-foreground italic">
+                      Questions about scoring? Visit the <Link href="/skipper"><span className="text-primary hover:underline cursor-pointer">Admin Page</span></Link> to view or adjust scoring configuration, or contact a club administrator.
+                    </p>
+                  </section>
+                </div>
+              </Card>
+            </div>
           </TabsContent>
         </Tabs>
       </main>
