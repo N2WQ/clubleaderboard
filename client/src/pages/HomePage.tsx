@@ -467,7 +467,7 @@ export default function HomePage() {
                     </p>
                     <ol className="list-decimal list-inside space-y-2 text-muted-foreground ml-4">
                       <li>
-                        <strong className="text-foreground">Individual Score Calculation:</strong> For multi-operator logs, we divide the claimed score by the number of valid YCCC operators to get each operator's individual contribution.
+                        <strong className="text-foreground">Individual Score Calculation:</strong> For multi-operator logs, we divide the claimed score by the total number of operators listed in the log to get each operator's individual contribution.
                       </li>
                       <li>
                         <strong className="text-foreground">Normalization:</strong> Each operator's individual score is normalized against the highest individual score in that contest using this formula:
