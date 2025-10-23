@@ -264,7 +264,7 @@ export class DbStorage implements IStorage {
     }));
 
     // Add members who only have cheerleader points (no contest submissions)
-    for (const [callsign, cheerPoints] of cheerleaderMap.entries()) {
+    for (const [callsign, cheerPoints] of Array.from(cheerleaderMap.entries())) {
       if (!combined.find(c => c.callsign === callsign)) {
         combined.push({
           callsign,
