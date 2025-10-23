@@ -490,14 +490,14 @@ export default function HomePage() {
                       Cheerleader Points
                     </h3>
                     <p className="text-muted-foreground mb-3">
-                      Cheerleader Points reward members for spotting other YCCC members on DX telnet clusters:
+                      Cheerleader Points reward members for posting DX spots on telnet clusters:
                     </p>
                     <ul className="list-disc list-inside space-y-2 text-muted-foreground ml-4">
                       <li>
-                        <strong className="text-foreground">Eligibility:</strong> Both the spotter and spotted callsign must be active YCCC members with current dues for the season.
+                        <strong className="text-foreground">Eligibility:</strong> Only the spotter must be an active YCCC member with current dues for the season. The spotted callsign can be any station.
                       </li>
                       <li>
-                        <strong className="text-foreground">Points Per Spot:</strong> Each valid spot earns the spotter a configurable number of points (default: 100 points).
+                        <strong className="text-foreground">Points Per Spot:</strong> Each valid spot earns the spotter {clusterStatus?.config?.pointsPerSpot || 100} points.
                       </li>
                       <li>
                         <strong className="text-foreground">Callsign Normalization:</strong> The system recognizes portable and DX prefixes (e.g., N2WQ/1, V47/K5ZD, LZ/K1XM/p) and correctly attributes spots to base callsigns.
