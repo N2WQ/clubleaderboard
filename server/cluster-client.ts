@@ -7,6 +7,7 @@ interface ClusterConfig {
   port: number;
   loginCallsign: string;
   enabled: boolean;
+  pointsPerSpot: number;
 }
 
 interface SpotData {
@@ -54,12 +55,14 @@ class ClusterClient {
     const fqdnConfig = await storage.getScoringConfig('cluster_fqdn');
     const portConfig = await storage.getScoringConfig('cluster_port');
     const callsignConfig = await storage.getScoringConfig('cluster_login_callsign');
+    const pointsConfig = await storage.getScoringConfig('cheerleader_points_per_spot');
 
     this.config = {
       enabled: enabledConfig?.value === 'true',
       fqdn: fqdnConfig?.value || 'dxc.w6cua.org',
       port: parseInt(portConfig?.value || '7300', 10),
       loginCallsign: callsignConfig?.value || 'AJ1I',
+      pointsPerSpot: parseInt(pointsConfig?.value || '100', 10),
     };
 
     console.log('Cluster configuration loaded:', {
@@ -67,6 +70,7 @@ class ClusterClient {
       fqdn: this.config.fqdn,
       port: this.config.port,
       loginCallsign: this.config.loginCallsign,
+      pointsPerSpot: this.config.pointsPerSpot,
     });
   }
 
