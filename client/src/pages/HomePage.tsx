@@ -582,7 +582,7 @@ export default function HomePage() {
 
                   <section className="pt-4 border-t border-border">
                     <p className="text-xs text-muted-foreground italic">
-                      Questions about scoring? Visit the <Link href="/skipper"><span className="text-primary hover:underline cursor-pointer">Admin Page</span></Link> to view or adjust scoring configuration, or contact a club administrator.
+                      Questions about scoring? Contact a club administrator for assistance or configuration changes.
                     </p>
                   </section>
                 </div>
