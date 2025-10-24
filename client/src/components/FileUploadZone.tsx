@@ -20,7 +20,10 @@ export function FileUploadZone({ onFileSelect }: FileUploadZoneProps) {
 
   const handleDragLeave = useCallback((e: React.DragEvent) => {
     e.preventDefault();
-    setIsDragging(false);
+    // Only set isDragging to false if we're actually leaving the drop zone
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      setIsDragging(false);
+    }
   }, []);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
